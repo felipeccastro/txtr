@@ -27,7 +27,7 @@
    15. MENU
    16. KEYBOARD
    17. TOUCH
-   18. BOOT             — seeds "What's Binders?" on the very first run
+   18. BOOT             — seeds "What's Txtr?" on the very first run
    ========================================================================= */
 
 
@@ -124,7 +124,7 @@ function loadDB() {
     const raw = localStorage.getItem(DB_KEY);
     if (raw) DB = Object.assign(DB, JSON.parse(raw));
   } catch (e) {
-    console.warn('Binders: local data could not be read, starting fresh.', e);
+    console.warn('Txtr: local data could not be read, starting fresh.', e);
   }
 }
 
@@ -395,7 +395,7 @@ function inline(str) {
 
 /**
  * Sheet body -> HTML. Line-oriented like Markdown, because if Markdown is
- * simpler then Binders should behave like Markdown (spec 37.10).
+ * simpler then Txtr should behave like Markdown (spec 37.10).
  * Task checkboxes carry their absolute line number so a click edits the
  * document rather than some parallel state.
  */
@@ -631,7 +631,7 @@ function route() {
 
   // A bare fragment (#authentication) resolves to the Binder on screen, or
   // to whichever Binder has a sheet by that name — so a plain anchor link
-  // shared out of Binders still lands on the sheet (spec 6).
+  // shared out of Txtr still lands on the sheet (spec 6).
   const here = getBinder(App.binderId);
   const owner = (here && parse(here.text).sheets.some((c) => c.slug === first))
     ? here
@@ -2282,7 +2282,7 @@ function renderChrome() {
   const crumb = $('#crumb-binder');
   crumb.hidden = !inBinder;
   if (b) crumb.textContent = b.title;
-  document.title = b ? b.title + ' — Binders' : 'Binders';
+  document.title = b ? b.title + ' — Txtr' : 'Txtr';
   refreshBell();
 }
 
@@ -2910,7 +2910,7 @@ function toggleNotifications() {
 
 
 /* == 14. EXPORT & PRINT ===================================================
-   A Binder can leave as a single HTML file that needs nothing from Binders:
+   A Binder can leave as a single HTML file that needs nothing from Txtr:
    readable, printable, offline, and still holding its own source text so it
    can come back in (spec 21). Print uses the browser (spec 20).             */
 
@@ -2960,7 +2960,7 @@ function buildExport(b) {
     ? '<div class="body">' + renderBody({ line: -1, lines: doc.lead }, { static: true }) + '</div>' : '';
 
   // The source travels with the file, so this export can be pasted or
-  // imported straight back into Binders without losing anything.
+  // imported straight back into Txtr without losing anything.
   const source = b.text.replace(/<\/(script)/gi, '<\\/$1');
 
   return '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8">' +
@@ -3560,14 +3560,14 @@ function watchScroll() {
 
 
 /* == 18. BOOT =============================================================
-   Open Binders and you are already using it: no landing page, no signup, no
+   Open Txtr and you are already using it: no landing page, no signup, no
    tour (spec 26). On the very first run the sample Binder is seeded from the
    text kept in index.html — it is a document, so it is stored as one.       */
 
 function seedSample() {
   const src = $('#sample-binder');
   if (!src) return;
-  newBinder(src.dataset.title || 'What is Binders?', src.textContent.replace(/^\n+/, ''));
+  newBinder(src.dataset.title || 'What is Txtr?', src.textContent.replace(/^\n+/, ''));
 }
 
 /**

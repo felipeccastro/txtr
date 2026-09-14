@@ -1,8 +1,8 @@
-# Binders
+# Txtr
 
-> Binders is the future of text. From notes to Kanban.
+> Txtr is the future of text. From notes to Kanban.
 
-Binders is a text-first workspace — the lightness of a plain Markdown file,
+Txtr is a text-first workspace — the lightness of a plain Markdown file,
 with better navigation, organization, and portability. No accounts, no
 schemas, no onboarding: open it and write.
 
@@ -30,7 +30,7 @@ file server works too, e.g. `python3 -m http.server 8777`.
 
 The guiding rule, from `SPEC.txt`:
 
-> If plain text is easier, use plain text. Binders should only exist where it
+> If plain text is easier, use plain text. Txtr should only exist where it
 > makes working with that text better.
 
 A Binder's content is Markdown-like text; the app is a live view onto that

@@ -1,24 +1,24 @@
-# Binders v2
+# Txtr v2
 
 ## The future of text
 
-**Binders is the future of text. From notes to Kanban.**
+**Txtr is the future of text. From notes to Kanban.**
 
-Binders is a text-first workspace designed to replace the way people use Markdown files, Notes, Notion, and lightweight project-management tools without becoming another complicated productivity app.
+Txtr is a text-first workspace designed to replace the way people use Markdown files, Notes, Notion, and lightweight project-management tools without becoming another complicated productivity app.
 
 The fundamental idea is simple:
 
 > **Keep the lightness of a text file, but give text better navigation, organization, collaboration, and portability.**
 
-Binders should feel less like an application and more like a beautifully formatted book that happens to be interactive.
+Txtr should feel less like an application and more like a beautifully formatted book that happens to be interactive.
 
-The product should be effortless enough that opening Binders and writing feels as natural as opening a text file.
+The product should be effortless enough that opening Txtr and writing feels as natural as opening a text file.
 
 ---
 
 # 1. Product philosophy
 
-Binders is a love letter to text interfaces.
+Txtr is a love letter to text interfaces.
 
 The product exists because plain Markdown files are already an excellent way to track knowledge. They are:
 
@@ -31,11 +31,11 @@ The product exists because plain Markdown files are already an excellent way to 
 * easy to edit
 * easy to share
 
-Binders should preserve all of those qualities while adding only the things that make working with a collection of text substantially better.
+Txtr should preserve all of those qualities while adding only the things that make working with a collection of text substantially better.
 
 The guiding rule is:
 
-> **If plain text is easier, use plain text. Binders should only exist where it makes working with that text better.**
+> **If plain text is easier, use plain text. Txtr should only exist where it makes working with that text better.**
 
 The product should avoid becoming a generic SaaS productivity platform.
 
@@ -52,7 +52,7 @@ No unnecessary:
 * artificial objects
 * database concepts exposed to the user
 
-The user should not have to learn Binders before using Binders.
+The user should not have to learn Txtr before using Txtr.
 
 ---
 
@@ -206,7 +206,7 @@ The heading can therefore simultaneously be:
 A Binder can link directly to a card:
 
 ```text
-binders.app/...#authentication
+txtr.app/...#authentication
 ```
 
 Opening that URL should navigate directly to the corresponding card and expand it.
@@ -311,7 +311,7 @@ Tags should not require the user to enter Markdown syntax.
 
 # 10. Kanban
 
-Binders does not need a dedicated Kanban view.
+Txtr does not need a dedicated Kanban view.
 
 The same vertical/horizontal navigation model provides a lightweight Kanban.
 
@@ -325,7 +325,7 @@ Each tag acts as a horizontal column.
 
 Cards remain ordinary text.
 
-This means Binders can replace lightweight Trello-style workflows without becoming a Trello clone.
+This means Txtr can replace lightweight Trello-style workflows without becoming a Trello clone.
 
 A dedicated Kanban implementation should not be part of the initial core.
 
@@ -404,7 +404,7 @@ A useful principle:
 
 # 14. Voice input
 
-Because Binders is a PWA, the search/AI interface can provide microphone input.
+Because Txtr is a PWA, the search/AI interface can provide microphone input.
 
 Voice becomes another input method rather than another mode of the application.
 
@@ -433,11 +433,11 @@ The fundamental inputs remain:
 
 # 15. Markdown
 
-Binders should understand Markdown-like text but should never force users into a “Markdown mode.”
+Txtr should understand Markdown-like text but should never force users into a “Markdown mode.”
 
 The user should simply write.
 
-Markdown can be pasted directly into Binders.
+Markdown can be pasted directly into Txtr.
 
 There should be no import wizard.
 
@@ -449,13 +449,13 @@ The workflow is:
 Open .md file
 ⌘A
 ⌘C
-Open Binders
+Open Txtr
 ⌘V
 ```
 
 Done.
 
-Pasting Markdown should convert naturally into Binders content.
+Pasting Markdown should convert naturally into Txtr content.
 
 Pasting rich text should preserve useful formatting.
 
@@ -467,7 +467,7 @@ Plain text should simply become text.
 
 The goal is:
 
-> **If you already know Markdown, you already know how to use Binders.**
+> **If you already know Markdown, you already know how to use Txtr.**
 
 ---
 
@@ -556,7 +556,7 @@ Users can choose:
 
 The print layout should:
 
-* hide Binders UI
+* hide Txtr UI
 * preserve headings
 * preserve quotes
 * preserve images
@@ -569,7 +569,7 @@ No server-side PDF generation should be required.
 
 # 21. Portable HTML
 
-A central feature of Binders is that a Binder can exist as an independent HTML file.
+A central feature of Txtr is that a Binder can exist as an independent HTML file.
 
 The file should be:
 
@@ -579,7 +579,7 @@ The file should be:
 * saveable
 * printable
 * shareable
-* understandable without the Binders server
+* understandable without the Txtr server
 
 The user should be able to:
 
@@ -597,7 +597,7 @@ That file can then be:
 * printed
 * converted to PDF
 
-A recipient should be able to open the file without having a Binders account.
+A recipient should be able to open the file without having a Txtr account.
 
 The ideal experience:
 
@@ -611,7 +611,7 @@ The Binder itself is the artifact.
 
 The client should own the document.
 
-Binders should work fully offline.
+Txtr should work fully offline.
 
 The server exists primarily for synchronization and collaboration.
 
@@ -715,7 +715,7 @@ The backend should avoid introducing infrastructure that the product does not ne
 
 # 25. PWA
 
-Binders is a Progressive Web App.
+Txtr is a Progressive Web App.
 
 It should:
 
@@ -732,13 +732,13 @@ The PWA should make the browser largely disappear.
 
 ---
 
-# 26. Opening Binders
+# 26. Opening Txtr
 
 There should be no conventional landing page.
 
 Visiting:
 
-**binders.app**
+**txtr.app**
 
 should put the user directly into the product.
 
@@ -754,7 +754,7 @@ The user should immediately be able to write.
 
 The philosophy is:
 
-> **Open Binders and you're already using it.**
+> **Open Txtr and you're already using it.**
 
 ---
 
@@ -762,7 +762,7 @@ The philosophy is:
 
 A sample Binder called:
 
-**What's Binders?**
+**What's Txtr?**
 
 is automatically available.
 
@@ -925,7 +925,7 @@ The pricing model follows the architecture.
 
 **The file.**
 
-* Full Binders experience
+* Full Txtr experience
 * One device
 * Offline
 * Local data
@@ -1004,13 +1004,13 @@ That is acceptable because the goal is distribution and adoption.
 
 The product promise becomes:
 
-> **Open source client. Your text is yours. Binders Cloud adds sync and collaboration.**
+> **Open source client. Your text is yours. Txtr Cloud adds sync and collaboration.**
 
 ---
 
-# 35. What Binders replaces
+# 35. What Txtr replaces
 
-Binders should not be positioned as simply another project-management application.
+Txtr should not be positioned as simply another project-management application.
 
 It can occupy a much broader continuum:
 
@@ -1036,7 +1036,7 @@ All using the same underlying primitive:
 
 **text.**
 
-This allows Binders to replace some people's use of:
+This allows Txtr to replace some people's use of:
 
 * Apple Notes
 * Markdown files
@@ -1047,15 +1047,15 @@ This allows Binders to replace some people's use of:
 
 But users do not need to replace those tools immediately.
 
-Binders can coexist with them.
+Txtr can coexist with them.
 
 For example:
 
 **Linear → execution**
 
-**Binders → understanding**
+**Txtr → understanding**
 
-A team might keep Linear for issues and sprints while using Binders for:
+A team might keep Linear for issues and sprints while using Txtr for:
 
 * product specifications
 * architecture decisions
@@ -1065,15 +1065,15 @@ A team might keep Linear for issues and sprints while using Binders for:
 * project context
 * documentation
 
-Over time, some lightweight workflows may naturally migrate from Linear into Binders.
+Over time, some lightweight workflows may naturally migrate from Linear into Txtr.
 
-This makes Binders easier to adopt because it does not require users to replace their existing workflow on day one.
+This makes Txtr easier to adopt because it does not require users to replace their existing workflow on day one.
 
 ---
 
-# 36. Why Binders is different
+# 36. Why Txtr is different
 
-Binders is not:
+Txtr is not:
 
 * a Notion clone
 * a Trello clone
@@ -1086,7 +1086,7 @@ It is:
 
 > **A text interface that scales from notes to lightweight work management.**
 
-The central design principle is that Binders does not create separate systems for every use case.
+The central design principle is that Txtr does not create separate systems for every use case.
 
 Instead:
 
@@ -1122,7 +1122,7 @@ No workflow configuration unless the user uses tags that way.
 
 ### 5. Portable by default
 
-The user's information should remain usable outside Binders.
+The user's information should remain usable outside Txtr.
 
 ### 6. Local by default
 
@@ -1142,15 +1142,15 @@ Avoid building separate views when navigation can produce the same experience.
 
 ### 10. Markdown simplicity
 
-If Markdown is simpler, Binders should behave like Markdown.
+If Markdown is simpler, Txtr should behave like Markdown.
 
 ---
 
-# 38. The Binders test
+# 38. The Txtr test
 
 Every proposed feature should answer:
 
-> **Does this make working with text easier, or does it turn Binders back into a SaaS productivity app?**
+> **Does this make working with text easier, or does it turn Txtr back into a SaaS productivity app?**
 
 If the feature adds complexity without making text substantially better, don't build it.
 
@@ -1158,9 +1158,9 @@ If the feature adds complexity without making text substantially better, don't b
 
 # 39. The product promise
 
-Binders should ultimately feel like this:
+Txtr should ultimately feel like this:
 
-You open `binders.app`.
+You open `txtr.app`.
 
 You see a clean Binder.
 
@@ -1202,7 +1202,7 @@ And throughout all of this, **it still feels like text.**
 
 # 40. Core tagline
 
-## Binders is the future of text.
+## Txtr is the future of text.
 
 **From notes to Kanban.**
 

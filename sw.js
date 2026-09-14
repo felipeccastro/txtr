@@ -1,7 +1,7 @@
 /* ============================================================================
-   BINDERS — sw.js  (offline cache that still prefers the network)
+   TXTR — sw.js  (offline cache that still prefers the network)
 
-   Installed as a PWA, Binders has to keep working with no connection (spec
+   Installed as a PWA, Txtr has to keep working with no connection (spec
    25) — but the whole point of shipping a change is that it reaches people,
    so offline is the fallback here, not the default. Every request goes to
    the network first; only a failed fetch (actually offline) falls back to
@@ -12,7 +12,7 @@
    the same entries — but it is still a name, in case the caching strategy
    itself ever needs to change out from under old copies of this file.       */
 
-const CACHE_NAME = 'binders-v1';
+const CACHE_NAME = 'txtr-v1';
 const CORE = ['./', './index.html', './scripts.js', './styles.css'];
 
 self.addEventListener('install', (e) => {
