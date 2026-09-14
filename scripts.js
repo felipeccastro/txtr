@@ -1792,7 +1792,9 @@ function onEditEnter(root, li) {
   // left to climb out of.
   if (empty && (kind === 'li' || kind === 'task' || kind === 'q')) {
     if ((kind === 'li' || kind === 'task') && outdentListItem(block)) return;
-    placeCaret(liftOut(block, newBlock('p')), 'start');
+    const lifted = newBlock('p');
+    parkIfEmpty(lifted);
+    placeCaret(liftOut(block, lifted), 'start');
     return;
   }
 
@@ -1809,7 +1811,18 @@ function onEditEnter(root, li) {
     container.insertBefore(made, block.nextSibling);
   }
   made.appendChild(tail);
+  parkIfEmpty(block);
+  parkIfEmpty(made);
   placeCaret(made, 'start');
+}
+
+/** A block left with no child at all (Enter at the very end or very start of
+ * a line) has no line box for the browser to hang a caret or a click on —
+ * the CSS min-height for :empty makes it look like a line, but it is not one
+ * to click into. A parked caret, same trick as completeMarker, gives it real
+ * (if invisible) content; serializing drops it again. */
+function parkIfEmpty(el) {
+  if (!el.hasChildNodes()) el.appendChild(document.createTextNode(ZWSP));
 }
 
 /**
