@@ -1,0 +1,1216 @@
+# Binders v2
+
+## The future of text
+
+**Binders is the future of text. From notes to Kanban.**
+
+Binders is a text-first workspace designed to replace the way people use Markdown files, Notes, Notion, and lightweight project-management tools without becoming another complicated productivity app.
+
+The fundamental idea is simple:
+
+> **Keep the lightness of a text file, but give text better navigation, organization, collaboration, and portability.**
+
+Binders should feel less like an application and more like a beautifully formatted book that happens to be interactive.
+
+The product should be effortless enough that opening Binders and writing feels as natural as opening a text file.
+
+---
+
+# 1. Product philosophy
+
+Binders is a love letter to text interfaces.
+
+The product exists because plain Markdown files are already an excellent way to track knowledge. They are:
+
+* simple
+* portable
+* fast
+* understandable
+* local
+* future-proof
+* easy to edit
+* easy to share
+
+Binders should preserve all of those qualities while adding only the things that make working with a collection of text substantially better.
+
+The guiding rule is:
+
+> **If plain text is easier, use plain text. Binders should only exist where it makes working with that text better.**
+
+The product should avoid becoming a generic SaaS productivity platform.
+
+No unnecessary:
+
+* onboarding
+* dashboards
+* schemas
+* fields
+* formulas
+* workflows
+* configuration
+* complex views
+* artificial objects
+* database concepts exposed to the user
+
+The user should not have to learn Binders before using Binders.
+
+---
+
+# 2. The core model
+
+The data model should be extremely small.
+
+```text
+Binder
+  └── text
+       ├── cards
+       ├── tags
+       ├── quotes
+       ├── mentions
+       └── reminders
+```
+
+The primary object is **text**.
+
+Cards, headings, pages, presentation sections, and navigation targets are different ways of interacting with the same text.
+
+Do not create separate systems when text can provide the primitive.
+
+---
+
+# 3. Binders
+
+A Binder is a collection of related text.
+
+Examples:
+
+* Project
+* Client
+* Research
+* Personal notes
+* Product documentation
+* Meeting notes
+* Business knowledge
+* Specification
+* Task list
+* Lightweight project workflow
+
+The Binder itself should feel like a document or book rather than a database.
+
+A Binder contains a continuous document flow.
+
+---
+
+# 4. Cards emerge from text
+
+The user writes continuously in one document.
+
+A hashtag/heading indicates the beginning of a new card.
+
+Example:
+
+```text
+# Authentication
+
+Use magic links for authentication.
+
+The main reason is that we don't want password
+management in v1.
+
+# Pricing
+
+Pro should cost R$25/month.
+
+# Open questions
+
+Should teams be able to share individual cards?
+```
+
+There is no “Create Card” workflow required.
+
+The user simply writes.
+
+`#` means:
+
+> **Start a new card.**
+
+The hashtag becomes part of the text and corresponds naturally to an HTML heading/URL fragment.
+
+The user does not need to enter a special Markdown mode.
+
+---
+
+# 5. Card presentation
+
+By default, cards are collapsed.
+
+The user sees a clean vertical list of titles:
+
+```text
+Authentication
+
+Pricing
+
+Open questions
+```
+
+The content remains in the document but is visually collapsed.
+
+Clicking a title expands that card.
+
+When expanded, the title becomes large, book-like typography and the content appears underneath.
+
+Example:
+
+```text
+                         Authentication
+
+Use magic links for authentication.
+
+The main reason is that we don't want password
+management in v1.
+```
+
+The same underlying text therefore has two representations:
+
+**Writing representation**
+
+A continuous document flow.
+
+**Reading representation**
+
+A sequence of navigable cards.
+
+---
+
+# 6. HTML semantics
+
+The heading/card primitive should map naturally to the web.
+
+For example:
+
+```html
+<h1 id="authentication">Authentication</h1>
+```
+
+The heading can therefore simultaneously be:
+
+* text
+* card title
+* section heading
+* navigation target
+* URL fragment
+* presentation section
+* printable document heading
+
+A Binder can link directly to a card:
+
+```text
+binders.app/...#authentication
+```
+
+Opening that URL should navigate directly to the corresponding card and expand it.
+
+This should use normal HTML semantics wherever possible rather than creating a proprietary deep-linking system.
+
+---
+
+# 7. Visual design
+
+The interface should feel like **reading a beautifully formatted book**.
+
+The application chrome should almost disappear.
+
+Priorities:
+
+* excellent typography
+* generous whitespace
+* clean vertical rhythm
+* large readable headings
+* minimal borders
+* minimal controls
+* no card-heavy SaaS aesthetic
+* no dashboard clutter
+* no excessive buttons
+
+The visual metaphor is a book/document, not a database.
+
+The interaction model can be sophisticated while the visual interface remains extremely simple.
+
+---
+
+# 8. Navigation
+
+Navigation should be spatial and gesture-friendly.
+
+## Vertical navigation
+
+**Up / down**
+
+Navigate to the previous or next card.
+
+On touch devices:
+
+**Swipe up / down**
+
+Move to the previous or next card.
+
+The vertical layout should use snapping so each card naturally occupies a navigable position.
+
+---
+
+## Horizontal navigation
+
+**Left / right**
+
+Navigate between tags.
+
+On touch devices:
+
+**Swipe left / right**
+
+Move between tags.
+
+Tags effectively become horizontal dimensions of the Binder.
+
+This means a Kanban-like workflow emerges naturally from the same navigation primitive.
+
+---
+
+# 9. Tags
+
+Tags are the only organizational primitive besides Binders and text.
+
+There are no separate statuses.
+
+There are no fields.
+
+There are no database properties.
+
+A tag can be used as a workflow state if the user wants one.
+
+For example:
+
+```text
+# Backlog
+# Doing
+# Done
+```
+
+The same tags can therefore provide a lightweight Kanban experience without implementing a dedicated Kanban system.
+
+Tags should have a good, fast editor.
+
+When creating a new card, a default tag can be applied.
+
+The tag should be visible next to the title and easily changed.
+
+Tags should not require the user to enter Markdown syntax.
+
+---
+
+# 10. Kanban
+
+Binders does not need a dedicated Kanban view.
+
+The same vertical/horizontal navigation model provides a lightweight Kanban.
+
+For example:
+
+```text
+        Backlog       Doing        Done
+```
+
+Each tag acts as a horizontal column.
+
+Cards remain ordinary text.
+
+This means Binders can replace lightweight Trello-style workflows without becoming a Trello clone.
+
+A dedicated Kanban implementation should not be part of the initial core.
+
+---
+
+# 11. Presentation mode
+
+The same snap-to-grid vertical structure can become a presentation mode.
+
+A Binder can be read one card at a time, with each card behaving like a presentation section.
+
+The presentation experience should be automatic rather than requiring users to build a separate presentation.
+
+The same content can therefore function as:
+
+* a document
+* a list
+* a lightweight Kanban
+* a presentation
+
+No separate data model is required.
+
+---
+
+# 12. Search
+
+Search should be extremely fast.
+
+Keyboard shortcut:
+
+**⌘K**
+
+The search interface should allow instant navigation through the Binder and its contents.
+
+Search should feel more like a command/navigation surface than a conventional search page.
+
+The user should be able to find:
+
+* cards
+* text
+* tags
+* Binders
+* relevant content
+
+---
+
+# 13. AI
+
+The search screen doubles as the AI interface.
+
+There should not be a separate AI sidebar or chatbot product bolted onto the application.
+
+The same surface supports:
+
+**Find → Ask → Navigate**
+
+Example:
+
+```text
+⌘K
+
+What did we decide about authentication?
+```
+
+The AI answers using the user's Binder content and points to the relevant cards.
+
+The user can navigate directly to those cards.
+
+AI should primarily help users understand and navigate their own text.
+
+A useful principle:
+
+> **AI should not become another place where information lives. It should help you navigate the information you already have.**
+
+---
+
+# 14. Voice input
+
+Because Binders is a PWA, the search/AI interface can provide microphone input.
+
+Voice becomes another input method rather than another mode of the application.
+
+Possible uses:
+
+> “What did we decide about authentication?”
+
+Ask the Binder.
+
+> “Add a card about the new pricing. We decided on R$25 for Pro.”
+
+Create text.
+
+> “Remind me tomorrow morning to call João.”
+
+Create a reminder.
+
+The fundamental inputs remain:
+
+* keyboard → text
+* paste → text
+* voice → text
+* AI → text
+
+---
+
+# 15. Markdown
+
+Binders should understand Markdown-like text but should never force users into a “Markdown mode.”
+
+The user should simply write.
+
+Markdown can be pasted directly into Binders.
+
+There should be no import wizard.
+
+### Importing Markdown
+
+The workflow is:
+
+```text
+Open .md file
+⌘A
+⌘C
+Open Binders
+⌘V
+```
+
+Done.
+
+Pasting Markdown should convert naturally into Binders content.
+
+Pasting rich text should preserve useful formatting.
+
+Pasting images should embed them.
+
+Pasting URLs should preserve links.
+
+Plain text should simply become text.
+
+The goal is:
+
+> **If you already know Markdown, you already know how to use Binders.**
+
+---
+
+# 16. Comments become quotes
+
+There is no separate comment system.
+
+Instead, discussion happens through quoted text.
+
+A response can be attached to or associated with the relevant passage.
+
+This keeps conversation inside the document rather than creating a separate comments layer.
+
+The text remains the primary object.
+
+---
+
+# 17. Mentions
+
+`@mentions` remain.
+
+Mentions can identify people inside text.
+
+For example:
+
+```text
+@Felipe should review the authentication decision.
+```
+
+Mentions can trigger notifications.
+
+There should not be a permanent comments or notifications UI cluttering the interface.
+
+---
+
+# 18. Notifications
+
+Notifications exist when there is actually something to notify the user about.
+
+If there are no notifications, the notification link should not be shown.
+
+The interface should reveal complexity only when it is needed.
+
+Notifications can come from:
+
+* mentions
+* quotes/discussion
+* reminders
+* team activity
+
+---
+
+# 19. Reminders
+
+Reminders are lightweight notifications attached to text.
+
+Example:
+
+```text
+Call João about the proposal
+@joao · tomorrow 10:00
+```
+
+The PWA can send a notification at the requested time.
+
+There should not be a separate task-management system just to support reminders.
+
+The text remains the object.
+
+---
+
+# 20. Printing and PDF
+
+A Binder should be printable.
+
+Two primary actions:
+
+* Print Binder
+* Print current card/entry
+
+The browser's native print system should be used.
+
+Users can choose:
+
+**Print → Save as PDF**
+
+The print layout should:
+
+* hide Binders UI
+* preserve headings
+* preserve quotes
+* preserve images
+* produce clean pagination
+* look like a real document/book
+
+No server-side PDF generation should be required.
+
+---
+
+# 21. Portable HTML
+
+A central feature of Binders is that a Binder can exist as an independent HTML file.
+
+The file should be:
+
+* self-contained
+* portable
+* usable offline
+* saveable
+* printable
+* shareable
+* understandable without the Binders server
+
+The user should be able to:
+
+**Cmd+S → save Binder**
+
+and receive an HTML file.
+
+That file can then be:
+
+* stored locally
+* backed up
+* emailed
+* attached to a message
+* opened later
+* printed
+* converted to PDF
+
+A recipient should be able to open the file without having a Binders account.
+
+The ideal experience:
+
+> Write a Binder → Cmd+S → attach it to an email → recipient opens it.
+
+The Binder itself is the artifact.
+
+---
+
+# 22. Local-first architecture
+
+The client should own the document.
+
+Binders should work fully offline.
+
+The server exists primarily for synchronization and collaboration.
+
+The client handles:
+
+* document management
+* parsing
+* rendering
+* search
+* navigation
+* tags
+* collapsing
+* presentation
+* local persistence
+* editing
+* printing
+* offline operation
+
+The server handles:
+
+* authentication
+* account information
+* billing/subscription state
+* synchronization
+* sharing
+* team membership
+* permissions
+* notifications where necessary
+
+The philosophy is:
+
+> **The server stores and synchronizes your text. The client understands Binders.**
+
+---
+
+# 23. Server storage
+
+Binder content does not need to live in a relational database.
+
+The server can store actual Binder content as HTML files ready to serve.
+
+Conceptually:
+
+```text
+data/
+  users.db
+
+  binders/
+    abc123/
+      current.html
+    def456/
+      current.html
+```
+
+SQLite can store:
+
+* users
+* subscriptions
+* Binder metadata
+* permissions
+* teams
+* memberships
+* sync metadata
+
+The actual document can remain an HTML file.
+
+This keeps the server simple and makes backups and migration straightforward.
+
+Potentially, revisions can later be stored as files:
+
+```text
+binders/
+  abc123/
+    current.html
+    revisions/
+      001.html
+      002.html
+```
+
+Revision history does not need to be part of the initial product.
+
+---
+
+# 24. Backend
+
+The server can be intentionally small.
+
+Technology:
+
+* Ruby
+* Active Record
+* SQLite
+
+Ruby is chosen primarily for readability and developer ergonomics.
+
+The server does not need to be a complicated application because most of the product lives in the client.
+
+The backend should avoid introducing infrastructure that the product does not need.
+
+---
+
+# 25. PWA
+
+Binders is a Progressive Web App.
+
+It should:
+
+* work offline
+* install on supported devices
+* behave like a native application
+* support local persistence
+* support PWA notifications
+* provide microphone input where supported
+* provide touch gestures
+* support keyboard shortcuts on desktop
+
+The PWA should make the browser largely disappear.
+
+---
+
+# 26. Opening Binders
+
+There should be no conventional landing page.
+
+Visiting:
+
+**binders.app**
+
+should put the user directly into the product.
+
+No:
+
+* marketing landing page
+* “Get Started” button
+* signup wall
+* onboarding wizard
+* product tour
+
+The user should immediately be able to write.
+
+The philosophy is:
+
+> **Open Binders and you're already using it.**
+
+---
+
+# 27. First-run experience
+
+A sample Binder called:
+
+**What's Binders?**
+
+is automatically available.
+
+It acts simultaneously as:
+
+* landing page
+* product demo
+* documentation
+* onboarding
+* feature showcase
+
+It should demonstrate:
+
+* writing
+* cards
+* tags
+* navigation
+* collapsed/expanded cards
+* search
+* AI
+* quotes
+* mentions
+* notifications
+* reminders
+* presentation
+* offline use
+* saving HTML
+* printing
+* sync
+* team functionality
+
+It should feel like a real Binder rather than a tutorial.
+
+The user can edit it.
+
+It can be deleted.
+
+The ideal first-run sequence is:
+
+**Open → read → interact → delete → write.**
+
+---
+
+# 28. Dashboard
+
+There should not be a traditional SaaS dashboard.
+
+No:
+
+* charts
+* metrics
+* widgets
+* activity feeds
+* complicated sidebar navigation
+
+The dashboard simply presents the user's Binders as large items.
+
+The Binder itself is the workspace.
+
+---
+
+# 29. Application navigation
+
+Navigation should be inspired by minimal, modal interfaces such as Omarchy.
+
+The application should have very little permanent chrome.
+
+The main interface should prioritize the document.
+
+Potentially:
+
+**Top left**
+
+Current Binder/navigation context.
+
+**Center**
+
+The text.
+
+**Top right**
+
+Vertical three-dot menu:
+
+```text
+⋮
+
+Upgrade Pro
+───────────
+Account
+Billing
+───────────
+Log out
+```
+
+Account-level functionality should remain out of the main workspace.
+
+Do not use a hamburger menu.
+
+---
+
+# 30. Keyboard interaction
+
+The product should feel excellent with a keyboard.
+
+Core interactions:
+
+```text
+⌘K      Search / AI
+⌘N      New Binder / new content
+↑ ↓     Previous / next card
+← →     Previous / next tag
+Enter   Edit/open
+Esc     Back/collapse
+⌘S      Save Binder
+```
+
+Exact shortcut behavior can evolve, but keyboard navigation should be a first-class part of the experience.
+
+---
+
+# 31. Touch interaction
+
+The same spatial model should work naturally on mobile.
+
+```text
+Swipe up/down     Previous/next card
+Swipe left/right  Previous/next tag
+Tap title         Expand card
+Tap mic           Voice input
+```
+
+The interaction should feel like navigating through a book or document rather than manipulating UI widgets.
+
+---
+
+# 32. Collaboration
+
+Team functionality should be additive rather than changing the fundamental model.
+
+Teams can:
+
+* share Binders
+* edit text
+* mention people
+* quote text
+* receive notifications
+* use reminders
+
+There should not be a separate team-oriented document model.
+
+The same Binders work for one person and for a team.
+
+---
+
+# 33. Pricing
+
+The pricing model follows the architecture.
+
+## Free
+
+**The file.**
+
+* Full Binders experience
+* One device
+* Offline
+* Local data
+* Portable HTML files
+* Save/export
+* Print/PDF
+* No account required
+
+The free version should be genuinely useful forever.
+
+There should not be artificial limitations designed solely to force conversion.
+
+---
+
+## Pro — $10/month or R$25/month
+
+**Your Binders everywhere.**
+
+* Multi-device sync
+* Automatic cloud backup
+* Account
+* Sync across devices
+
+The primary thing users pay for is synchronization.
+
+The lower Brazilian price reflects the intention to make the product substantially easier to adopt in Brazil while keeping the international price at $10.
+
+---
+
+## Team
+
+**Your Binders together.**
+
+* Shared Binders
+* Multiple people
+* Collaboration
+* `@mentions`
+* Quotes/discussion
+* Notifications
+* Team access
+
+More advanced permissions can be added later if needed.
+
+The pricing philosophy is:
+
+> **Free = the file.
+> Pro = sync.
+> Team = collaboration.**
+
+---
+
+# 34. Open source
+
+The client should be open source.
+
+The free client is already designed to be:
+
+* local
+* portable
+* offline
+* usable without the server
+
+Open sourcing it therefore reinforces the product philosophy rather than undermining the paid service.
+
+The hosted service provides:
+
+* sync
+* cloud storage
+* collaboration
+* team functionality
+* convenience
+
+Someone should be able to fork or self-host the client.
+
+That is acceptable because the goal is distribution and adoption.
+
+The product promise becomes:
+
+> **Open source client. Your text is yours. Binders Cloud adds sync and collaboration.**
+
+---
+
+# 35. What Binders replaces
+
+Binders should not be positioned as simply another project-management application.
+
+It can occupy a much broader continuum:
+
+```text
+Notes
+  ↓
+Documents
+  ↓
+Knowledge
+  ↓
+Specs
+  ↓
+Tasks
+  ↓
+Lightweight workflow
+  ↓
+Kanban
+  ↓
+Presentation
+```
+
+All using the same underlying primitive:
+
+**text.**
+
+This allows Binders to replace some people's use of:
+
+* Apple Notes
+* Markdown files
+* Notion
+* Trello
+* lightweight Linear workflows
+* internal documentation tools
+
+But users do not need to replace those tools immediately.
+
+Binders can coexist with them.
+
+For example:
+
+**Linear → execution**
+
+**Binders → understanding**
+
+A team might keep Linear for issues and sprints while using Binders for:
+
+* product specifications
+* architecture decisions
+* research
+* meeting notes
+* requirements
+* project context
+* documentation
+
+Over time, some lightweight workflows may naturally migrate from Linear into Binders.
+
+This makes Binders easier to adopt because it does not require users to replace their existing workflow on day one.
+
+---
+
+# 36. Why Binders is different
+
+Binders is not:
+
+* a Notion clone
+* a Trello clone
+* a database builder
+* a project-management suite
+* an AI workspace
+* a Markdown editor with a cloud backend
+
+It is:
+
+> **A text interface that scales from notes to lightweight work management.**
+
+The central design principle is that Binders does not create separate systems for every use case.
+
+Instead:
+
+**Text + navigation + tags + a few lightweight interactions**
+
+produce many different experiences.
+
+---
+
+# 37. Feature principles
+
+Every new feature should be tested against these principles.
+
+### 1. Text first
+
+Text is the primary object.
+
+### 2. No unnecessary objects
+
+Don't create a database object if text can represent it.
+
+### 3. No configuration before action
+
+The user should be able to start writing immediately.
+
+### 4. Complexity appears only when needed
+
+No notifications if there are none.
+
+No comments system if there is no discussion.
+
+No workflow configuration unless the user uses tags that way.
+
+### 5. Portable by default
+
+The user's information should remain usable outside Binders.
+
+### 6. Local by default
+
+The client should work without the server.
+
+### 7. Server as infrastructure
+
+The server synchronizes and collaborates; it should not own the user's workflow.
+
+### 8. Beautiful reading experience
+
+The application should feel like reading a well-designed book.
+
+### 9. Navigation over views
+
+Avoid building separate views when navigation can produce the same experience.
+
+### 10. Markdown simplicity
+
+If Markdown is simpler, Binders should behave like Markdown.
+
+---
+
+# 38. The Binders test
+
+Every proposed feature should answer:
+
+> **Does this make working with text easier, or does it turn Binders back into a SaaS productivity app?**
+
+If the feature adds complexity without making text substantially better, don't build it.
+
+---
+
+# 39. The product promise
+
+Binders should ultimately feel like this:
+
+You open `binders.app`.
+
+You see a clean Binder.
+
+You start writing.
+
+You create cards simply by starting a new heading.
+
+You navigate vertically through your thoughts.
+
+You navigate horizontally through tags.
+
+You search instantly.
+
+You ask AI about your own information.
+
+You speak to it through the microphone.
+
+You mention someone.
+
+You quote text instead of opening a comment system.
+
+You set a reminder.
+
+You save the Binder as HTML.
+
+You email it.
+
+You print it.
+
+You open it offline.
+
+You use it on another device when you enable sync.
+
+You share it with a team when you need collaboration.
+
+And throughout all of this, **it still feels like text.**
+
+---
+
+# 40. Core tagline
+
+## Binders is the future of text.
+
+**From notes to Kanban.**
+
+Supporting idea:
+
+> **The lightness of a text file, with better ways to navigate it.**
+
+And the deeper product philosophy:
+
+> **Text, without the limitations of text files.**
+
