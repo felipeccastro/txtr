@@ -2880,9 +2880,6 @@ function renderMenu() {
       : '') +
     item('New Binder', 'B', 'new') +
     item('Open a file', '', 'import') +
-    '<hr class="menu-sep">' +
-    item('Your name for @mentions', '', 'identity') +
-    item('Sync across devices', 'Pro', 'sync') +
     (openSheet ? '<hr class="menu-sep">' + '<button class="menu-item is-danger" role="menuitem" data-act="delete-sheet">' +
       '<span>Delete this sheet</span></button>' : '') +
     (inBinder ? '<hr class="menu-sep">' + '<button class="menu-item is-danger" role="menuitem" data-act="delete">' +
@@ -2980,14 +2977,6 @@ function menuAction(act) {
       });
       break;
     }
-    case 'identity': {
-      const name = prompt('Your name, for @mentions', DB.identity);
-      if (name) { DB.identity = name.trim().replace(/^@/, ''); saveDB(); route(); toast('You are @' + DB.identity); }
-      break;
-    }
-    case 'sync':
-      toast('Sync is Pro. This client keeps everything on this device.');
-      break;
   }
 }
 
