@@ -34,8 +34,6 @@
     <button class="crumb crumb-current" id="crumb-binder" hidden title="Rename this Binder"></button>
   </nav>
   <div class="actions">
-    <!-- The bell only exists when there is something to say (spec 18). -->
-    <button class="icon-btn" id="bell" hidden aria-label="Notifications">&#9679;</button>
     <button class="icon-btn" id="search-btn" aria-label="Search or ask (Command K)">&#9906;</button>
     <div class="menu-wrap">
       <button class="icon-btn" id="menu-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false">&#8942;</button>
@@ -43,11 +41,6 @@
     </div>
   </div>
 </header>
-
-<!-- Notifications are a bar across the page, not a popover: when there is
-     something to say it gets the full width, and when there is nothing the
-     bar does not exist (spec 18). -->
-<div class="panel" id="notifs" hidden role="region" aria-label="Notifications"></div>
 
 <!-- == TAG RAIL: the horizontal dimension of a Binder (spec 8/9/10) ====== -->
 <nav class="chrome tagrail" id="tagrail" hidden aria-label="Tags"></nav>
@@ -195,24 +188,6 @@ quote something, and answer it on the line below with an em dash:
 A discussion is a few lines of text, in the sheet it is about, saved with it.
 
 Mentions are just text too. @Felipe should review this sheet before we ship.
-When someone is mentioned, a dot appears at the top right, and only then.
-
-# Reminders #text
-
-A reminder is a line with a time in it. Nothing else, no task system — start
-the line with `!` and leave it there, because the time is part of what the
-line says:
-
-! tomorrow 09:00 Call Joao about the proposal
-
-Txtr installs as an app, so the notification arrives at the time you wrote.
-Everything below is a checklist, which is also just text:
-
-- [x] Write the spec
-- [ ] Draft the pricing page
-- [ ] Ask @Felipe to read it
-
-Click a box. It edits the document, because the document is the state.
 
 # Save it, print it, email it #text
 
@@ -225,26 +200,6 @@ PDF from there if you want one.
 
 That file is the artifact. Write a Binder, save it, attach it to an email.
 The person who opens it needs no account and no Txtr.
-
-# Draft the pricing page #doing
-
-Free is the file: the full experience, offline, on one device, yours to keep.
-
-Pro is sync, at $10/month or R$25/month in Brazil.
-
-Team is collaboration: shared Binders, mentions, quotes, notifications.
-
-- [x] Agree the three tiers
-- [ ] Write the Pro page
-- [ ] Decide what the free tier never loses
-
-# Decide on sync pricing #done
-
-We decided sync is the thing people pay for, at $10 a month, and R$25 in
-Brazil so that adopting it there is genuinely easy.
-
-The free client is never crippled to push the upgrade. It keeps working
-offline, forever, with no account.
 
 # Everything is text #done
 

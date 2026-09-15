@@ -22,7 +22,7 @@
    09. EDITOR
    10. PALETTE (find / ask / speak)
    11. PRESENT MODE
-   12. NOTIFICATIONS, TOAST, SELECTION ACTION
+   12. TOAST, SELECTION ACTION
    13. PRINT
    ========================================================================= */
 
@@ -206,8 +206,6 @@ body > .toast          { z-index: 70; }
   transition: color .15s, background .15s, box-shadow .15s;
 }
 .icon-btn:hover { color: var(--fg); background: var(--hover); }
-.icon-btn.is-live { color: var(--orange); text-shadow: 0 0 14px rgba(255, 158, 100, .75); }
-#bell { font-size: .55rem; }
 
 /* Tag rail — the horizontal dimension of the Binder (spec 8, 9, 10). */
 .tagrail {
@@ -433,8 +431,8 @@ kbd {
 
 
 /* == 07. PROSE ============================================================
-   Rendered text. Quotes are the discussion (16), reminders are a line with
-   a time in them (19), tasks are lines with a box (15).                    */
+   Rendered text. Quotes are the discussion (16), tasks are lines with a
+   box (15).                                                                */
 
 .prose > *:first-child { margin-top: 0; }
 .prose p { margin: 0 0 1.35em; }
@@ -520,18 +518,6 @@ table[data-b="table"] td:last-child, table[data-b="table"] th:last-child { paddi
   border-radius: 4px;
   padding: 0 .2em;
 }
-
-.reminder {
-  font-size: .8125rem; letter-spacing: .02em;
-  color: var(--orange);
-  border-left: 2px solid var(--orange);
-  background: linear-gradient(90deg, rgba(255, 158, 100, .10), transparent 70%);
-  box-shadow: -2px 0 16px rgba(255, 158, 100, .18);
-  border-radius: 0 8px 8px 0;
-  padding: .7rem 1rem;
-  margin: 1.6em 0;
-}
-.reminder.is-past { color: var(--faint); border-left-color: var(--line); background: none; box-shadow: none; }
 
 .task { list-style: none; margin-left: -1.35em; }
 .task-box {
@@ -805,56 +791,7 @@ table[data-b="table"] td:last-child, table[data-b="table"] th:last-child { paddi
 }
 
 
-/* == 11. NOTIFICATIONS, TOAST, SELECTION ACTION =========================== */
-
-.panel {
-  flex: 0 0 auto;
-  max-height: 40vh;
-  overflow-y: auto;
-  background: linear-gradient(90deg, rgba(255, 158, 100, .07), transparent 60%), rgba(16, 16, 24, .9);
-  backdrop-filter: blur(18px);
-  border-bottom: 1px solid var(--line);
-  animation: drop .2s var(--ease);
-}
-.panel[hidden] { display: none; }
-@keyframes drop { from { opacity: 0; transform: translateY(-8px); } }
-
-.notif {
-  display: grid;
-  grid-template-columns: 10rem minmax(0, 1fr) auto;
-  gap: 1.25rem;
-  align-items: baseline;
-  width: 100%;
-  padding: .9rem 1.4rem;
-  border-bottom: 1px solid var(--line);
-  transition: background .12s;
-}
-.notif:last-child { border-bottom: 0; }
-.notif:hover { background: rgba(125, 207, 255, .06); }
-.notif-kind {
-  font-size: .5625rem; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
-  color: var(--orange);
-  white-space: nowrap;
-}
-.notif-kind.is-mention { color: var(--blue); }
-.notif-text {
-  font-size: .9375rem;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.notif-where {
-  font-size: .625rem; font-weight: 500; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--faint);
-  white-space: nowrap;
-}
-/* "Clear all" is an action, not an item: it sits at the end of the bar. */
-.notif[data-clear] { display: flex; justify-content: flex-end; }
-.notif[data-clear] .notif-kind { color: var(--faint); }
-.notif[data-clear]:hover .notif-kind { color: var(--cyan); text-shadow: var(--glow-cyan); }
-
-@media (max-width: 52rem) {
-  .notif { grid-template-columns: 1fr; gap: .2rem; }
-  .notif-text, .notif-where { white-space: normal; }
-}
+/* == 11. TOAST, SELECTION ACTION =========================================== */
 
 .toast {
   position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
@@ -886,7 +823,7 @@ table[data-b="table"] td:last-child, table[data-b="table"] th:last-child { paddi
 
 @media print {
   body { background: #fff; color: #111; display: block; overflow: visible; font-size: 11pt; }
-  .ambient, .topbar, .tagrail, .overlay, .panel, .toast,
+  .ambient, .topbar, .tagrail, .overlay, .toast,
   .tag, .drag-handle { display: none !important; }
   .stage { overflow: visible; padding: 0; }
   .column { max-width: none; }
@@ -902,7 +839,6 @@ table[data-b="table"] td:last-child, table[data-b="table"] th:last-child { paddi
   code, .prose pre { background: #f4f4f7; border-color: #ddd; color: #111; }
   .quote { border-left-color: #bbb; color: #333; }
   .reply { border-left-color: #888; box-shadow: none; }
-  .reminder { color: #333; border-left-color: #888; background: none; box-shadow: none; }
   .print-sheet-only .sheet:not(.is-print) { display: none; }
   /* Placeholder hints ("Write. A line starting with # is a heading.", "Name
      this sheet", the trail's "Write more...") guide someone typing — on

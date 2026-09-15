@@ -1,5 +1,5 @@
 /* ============================================================================
-   BINDERS — scripts.js  (client only, vanilla, no build step, no dependencies)
+   TXTR — scripts.js  (client only, vanilla, no build step, no dependencies)
 
    The whole product is here because the whole product is the client: the
    server's job would only ever be sync and sharing (spec 22). This file owns
@@ -12,7 +12,7 @@
 
    01. UTILITIES
    02. STORE            — persistence + Binder records
-   03. PARSER           — text -> sheets, tags, mentions, quotes, reminders
+   03. PARSER           — text -> sheets, tags, mentions, quotes
    04. RENDERER         — parsed text -> HTML
    05. ROUTER           — hash URLs, deep links to sheets
    06. VIEW: SHELF      — the list of Binders
@@ -21,13 +21,11 @@
    09. EDITING          — the sheet on screen is the one being written
    10. PALETTE          — find / ask / speak
    11. ANSWERS          — local retrieval over your own text
-   12. REMINDERS        — time attached to text
-   13. NOTIFICATIONS    — only when there is something to say
-   14. EXPORT & PRINT   — portable HTML, native print
-   15. MENU
-   16. KEYBOARD
-   17. TOUCH
-   18. BOOT             — seeds "What's Txtr?" on the very first run
+   12. EXPORT & PRINT   — portable HTML, native print
+   13. MENU
+   14. KEYBOARD
+   15. TOUCH
+   16. BOOT             — seeds "What's Txtr?" on the very first run
    ========================================================================= */
 
 
@@ -58,16 +56,6 @@ function ago(ts) {
   if (d < 172800) return 'yesterday';
   if (d < 604800) return Math.floor(d / 86400) + 'd ago';
   return new Date(ts).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-}
-
-function clockLabel(date) {
-  const now = new Date();
-  const sameDay = date.toDateString() === now.toDateString();
-  const tomorrow = new Date(now.getTime() + 864e5).toDateString() === date.toDateString();
-  const time = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-  if (sameDay) return 'today ' + time;
-  if (tomorrow) return 'tomorrow ' + time;
-  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ' ' + time;
 }
 
 function toast(msg) {
@@ -115,8 +103,6 @@ const DB_KEY = 'binders.v2';
 let DB = {
   identity: 'Felipe',      // who "me" is, for @mentions
   binders: [],             // [{ id, title, text, created, updated }]
-  seen: 0,                 // timestamp of the last notification check
-  fired: {},               // reminder keys already notified
 };
 
 function loadDB() {
@@ -194,8 +180,6 @@ function applyHistory(b, text) {
   App.col = Math.min(App.col, App.doc.tags.length);
   renderBinder();
   renderChrome();
-  scheduleReminders();
-  refreshBell();
 
   const reopen = openSlug && App.doc.sheets.find((c) => c.slug === openSlug);
   if (reopen) expand(reopen.slug, { scroll: true });
@@ -238,7 +222,6 @@ function redo() {
      "@name"     inline          -> a mention
      "> text"    at line start   -> a quoted passage
      "— text"    after a quote   -> a reply to it
-     "!" line                    -> a reminder
      "- [ ]"                     -> a task
    Anything else is just text, which is the point.                           */
 
@@ -246,7 +229,6 @@ const RE_SHEET    = /^(#{1,2})\s+(.*)$/;
 const RE_SUB     = /^(#{3,6})\s+(.*)$/;
 const RE_TAG     = /(^|[\s(])#([\p{L}][\p{L}\p{N}_-]*)/gu;
 const RE_MENTION = /(^|[\s(])@([\p{L}][\p{L}\p{N}._-]*)/gu;
-const RE_REMIND  = /^!\s*(?:remind(?:er)?\s*)?(.+)$/i;
 
 function collect(re, text, out) {
   re.lastIndex = 0;
@@ -277,7 +259,7 @@ function parse(text) {
 
     sheet = {
       level, title, slug, named: !!written, tag: tags[0] || null,
-      mentions: [], reminders: [], lines: [], line: lineNo,
+      mentions: [], lines: [], line: lineNo,
     };
     collect(RE_MENTION, raw, sheet.mentions);
     sheets.push(sheet);
@@ -295,12 +277,6 @@ function parse(text) {
 
     sheet.lines.push(line);
     collect(RE_MENTION, line, sheet.mentions);
-
-    const r = RE_REMIND.exec(line.trim());
-    if (r) {
-      const when = parseWhen(r[1]);
-      if (when) sheet.reminders.push(when);
-    }
   });
 
   // Tag order is order of appearance in the document. No sorting, no config:
@@ -309,47 +285,6 @@ function parse(text) {
   sheets.forEach((c) => { if (c.tag && !tags.includes(c.tag)) tags.push(c.tag); });
 
   return { lead, sheets, tags, text: String(text || '') };
-}
-
-/** "tomorrow 10:00 Call João" -> { at, label, text }. Small on purpose. */
-function parseWhen(str) {
-  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  let s = str.trim();
-  const now = new Date();
-  const at = new Date(now);
-  at.setSeconds(0, 0);
-  let matched = false;
-
-  const iso = /^(\d{4})-(\d{2})-(\d{2})\s*/.exec(s);
-  const word = /^(today|tonight|tomorrow|next week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s*/i.exec(s);
-
-  if (iso) {
-    at.setFullYear(+iso[1], +iso[2] - 1, +iso[3]);
-    s = s.slice(iso[0].length); matched = true;
-  } else if (word) {
-    const w = word[1].toLowerCase();
-    if (w === 'tomorrow') at.setDate(at.getDate() + 1);
-    else if (w === 'next week') at.setDate(at.getDate() + 7);
-    else if (w === 'tonight') at.setHours(20, 0);
-    else if (days.includes(w)) {
-      const delta = (days.indexOf(w) - at.getDay() + 7) % 7 || 7;
-      at.setDate(at.getDate() + delta);
-    }
-    s = s.slice(word[0].length); matched = true;
-  }
-
-  const time = /^(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*/i.exec(s);
-  if (time) {
-    let h = +time[1];
-    if (/pm/i.test(time[3] || '') && h < 12) h += 12;
-    if (/am/i.test(time[3] || '') && h === 12) h = 0;
-    at.setHours(h, +(time[2] || 0));
-    s = s.slice(time[0].length); matched = true;
-  }
-
-  if (!matched) return null;
-  s = s.replace(/^(to|–|—|-|:)\s*/i, '').trim();
-  return { at: at.getTime(), label: clockLabel(at), text: s };
 }
 
 
@@ -516,9 +451,9 @@ function renderBody(sheet, opts = {}) {
 
     // A line starting with an em dash right after a quote is a reply to it.
     // That is the entire comment system (spec 16).
-    // A reply keeps its em dash and a reminder keeps its "!", because in both
-    // the marker is part of what the line says — and because a line whose
-    // rendering reorders its own words could not be written back (spec 16).
+    // A reply keeps its em dash, because the marker is part of what the line
+    // says — and because a line whose rendering reorders its own words could
+    // not be written back (spec 16).
     const reply = /^(?:—|--)\s+(.+)$/.exec(t);
     if (reply && quote !== null) {
       const q = quote; quote = null;
@@ -545,18 +480,6 @@ function renderBody(sheet, opts = {}) {
     }
 
     if (/^(---|\*\*\*|___)$/.test(t)) { flushAll(); out.push('<hr data-b="hr">'); return; }
-
-    // reminders
-    const rem = RE_REMIND.exec(t);
-    if (rem) {
-      const w = parseWhen(rem[1]);
-      if (w) {
-        flushAll();
-        out.push('<p class="reminder' + (w.at < Date.now() ? ' is-past' : '') +
-          '" data-b="line" title="' + esc(w.label) + '">' + inline(t) + '</p>');
-        return;
-      }
-    }
 
     // tasks and lists — indented further than the list line above becomes
     // nested inside it, exactly what Tab does live (its <li> stays open
@@ -1185,8 +1108,8 @@ function setSheetTag(sheet, value) {
    The invariant that keeps this small: while a sheet has focus the DOM is the
    working copy and b.text is derived from it, never the other way round. So
    nothing ever re-renders under the caret. Everything outside the open sheet
-   — the other rows, the tag rail, the reminders — re-syncs when focus leaves
-   or when a new sheet is committed.
+   — the other rows, the tag rail — re-syncs when focus leaves or when a new
+   sheet is committed.
 
    Surface: makeEditable(li, sheet), writeOpenSheet(), leaveSheet().         */
 
@@ -1409,8 +1332,6 @@ const persistSheet = debounce(() => {
   // A heading still being typed is already a sheet in the text but not yet a
   // row on screen, so the counts in the rail would flicker word by word.
   if (!$('.sheet.is-open .prose [data-b="sheet"]')) renderTagRail();
-  scheduleReminders();
-  refreshBell();
 }, 300);
 
 
@@ -2069,7 +1990,7 @@ function makeEditable(li, sheet) {
     el.addEventListener('copy', onEditCopy);
     el.addEventListener('cut', onEditCut);
     el.addEventListener('paste', (e) => onEditPaste(e, el));
-    el.addEventListener('blur', () => { if (writeOpenSheet()) { renderTagRail(); refreshBell(); } });
+    el.addEventListener('blur', () => { if (writeOpenSheet()) renderTagRail(); });
   });
 }
 
@@ -2082,8 +2003,6 @@ function leaveSheet() {
   const li = slug && sheetBySlug(slug);
   if (li) setCursor(visible().indexOf(li), { scroll: true });
   renderTagRail();
-  scheduleReminders();
-  refreshBell();
   $('#stage').focus({ preventScroll: true });
 }
 
@@ -2283,7 +2202,6 @@ function renderChrome() {
   crumb.hidden = !inBinder;
   if (b) crumb.textContent = b.title;
   document.title = b ? b.title + ' — Txtr' : 'Txtr';
-  refreshBell();
 }
 
 
@@ -2397,7 +2315,7 @@ function score(row, words, q) {
 function runPalette() {
   const q = $('#term-input').value.trim();
   const looksLikeQuestion = /\?\s*$/.test(q) ||
-    /^(what|who|when|where|why|how|did|do|does|is|are|should|can|add|remind|show)\b/i.test(q);
+    /^(what|who|when|where|why|how|did|do|does|is|are|should|can|add|show)\b/i.test(q);
   if (Pal.mode !== 'ask') setMode('find');
   $('#term-mode').textContent = Pal.mode === 'ask' ? 'Ask'
     : (looksLikeQuestion && q ? 'Find — Tab to ask' : 'Find');
@@ -2501,9 +2419,6 @@ async function ask(q) {
 
   const add = /^(?:add|create|new)\s+(?:a\s+)?sheet\s*(?:about|for|called|titled|on)?\s*[:,-]?\s*(.+)$/i.exec(q);
   if (add) return commandAddSheet(add[1]);
-
-  const rem = /^remind\s+me\s+(.+)$/i.exec(q);
-  if (rem) return commandRemind(rem[1]);
 
   const terms = q.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 2 && !STOP.has(w));
   if (!terms.length) {
@@ -2740,35 +2655,6 @@ function commandAddSheet(rest) {
   toast('Sheet added');
 }
 
-function commandRemind(rest) {
-  const binder = getBinder(App.binderId) || DB.binders[0];
-  if (!binder) return toast('Start a Binder first');
-  const when = parseWhen(rest.replace(/^(to|about)\s+/i, ''));
-  if (!when) {
-    toast('Try "remind me tomorrow 10:00 to call Joao"');
-    return;
-  }
-  const doc = parse(binder.text);
-  let sheet = doc.sheets.find((c) => /reminder/i.test(c.title));
-  let text = binder.text.replace(/\s*$/, '');
-  const line = '! ' + rest.replace(/^(to|about)\s+/i, '');
-  if (sheet) {
-    const lines = text.split('\n');
-    lines.splice(sheet.line + 1 + sheet.lines.length, 0, line);
-    text = lines.join('\n');
-  } else {
-    text += '\n\n# Reminders\n\n' + line + '\n';
-  }
-  writeBinder(binder, text);
-  closePalette();
-  App.doc = parse(binder.text);
-  go(linkTo(binder.id, parse(binder.text).sheets.find((c) => /reminder/i.test(c.title)).slug));
-  askNotificationPermission();
-  scheduleReminders();
-  toast('Reminder set for ' + when.label);
-}
-
-
 /* == VOICE ================================================================
    The microphone is an input method, not a mode (spec 14). Where the browser
    has no speech recognition the button says so and nothing else changes.    */
@@ -2804,112 +2690,7 @@ function stopListening() {
 }
 
 
-/* == 12. REMINDERS ========================================================
-   A reminder is a line of text with a time in it (spec 19). Timers exist
-   only while the app is open; the text is the record.                       */
-
-let timers = [];
-
-function allReminders() {
-  const out = [];
-  DB.binders.forEach((b) => {
-    parse(b.text).sheets.forEach((c) => {
-      c.reminders.forEach((r) => out.push({
-        ...r, binderId: b.id, binderTitle: b.title, slug: c.slug, sheet: c.title,
-        key: b.id + '/' + c.slug + '/' + r.at + '/' + r.text.slice(0, 24),
-      }));
-    });
-  });
-  return out.sort((a, b) => a.at - b.at);
-}
-
-function scheduleReminders() {
-  timers.forEach(clearTimeout);
-  timers = [];
-  const now = Date.now();
-  allReminders().forEach((r) => {
-    const wait = r.at - now;
-    if (wait <= 0 || wait > 6 * 3600e3 || DB.fired[r.key]) return;
-    timers.push(setTimeout(() => fireReminder(r), wait));
-  });
-}
-
-function fireReminder(r) {
-  DB.fired[r.key] = true;
-  saveDB();
-  const body = r.text + ' — ' + r.binderTitle;
-  if (window.Notification && Notification.permission === 'granted') {
-    const n = new Notification(r.sheet, { body, tag: r.key });
-    n.onclick = () => { window.focus(); go(linkTo(r.binderId, r.slug)); };
-  } else {
-    toast(r.text);
-  }
-  refreshBell();
-}
-
-function askNotificationPermission() {
-  if (window.Notification && Notification.permission === 'default') Notification.requestPermission();
-}
-
-
-/* == 13. NOTIFICATIONS ====================================================
-   The bell exists only when there is something to say (spec 18).           */
-
-function pendingNotifications() {
-  const out = [];
-  allReminders().forEach((r) => {
-    if (r.at <= Date.now() && r.at > DB.seen) out.push({
-      kind: 'reminder', text: r.text || r.sheet, when: r.label,
-      where: r.binderTitle + ' · #' + r.slug, href: linkTo(r.binderId, r.slug), at: r.at,
-    });
-  });
-  DB.binders.forEach((b) => {
-    if (b.updated <= DB.seen) return;
-    parse(b.text).sheets.forEach((c) => {
-      if (!c.mentions.some((m) => m.toLowerCase() === String(DB.identity).toLowerCase())) return;
-      out.push({
-        kind: 'mention', text: 'You are mentioned in ' + c.title,
-        when: ago(b.updated), where: b.title + ' · #' + c.slug,
-        href: linkTo(b.id, c.slug), at: b.updated,
-      });
-    });
-  });
-  return out.sort((a, b) => b.at - a.at).slice(0, 12);
-}
-
-function refreshBell() {
-  const list = pendingNotifications();
-  const bell = $('#bell');
-  bell.hidden = list.length === 0;
-  bell.classList.toggle('is-live', list.length > 0);
-  bell.setAttribute('aria-label', list.length + ' notifications');
-  if (!list.length) $('#notifs').hidden = true;
-}
-
-function toggleNotifications() {
-  const panel = $('#notifs');
-  if (!panel.hidden) { panel.hidden = true; return; }
-  const list = pendingNotifications();
-  // Three columns across the bar: what kind, what it says, where and when.
-  panel.innerHTML = list.map((n, i) =>
-    '<button class="notif" data-i="' + i + '">' +
-      '<span class="notif-kind' + (n.kind === 'mention' ? ' is-mention' : '') + '">' +
-        (n.kind === 'mention' ? 'Mention' : 'Reminder') + '</span>' +
-      '<span class="notif-text">' + esc(n.text) + '</span>' +
-      '<span class="notif-where">' + esc(n.where) + ' · ' + esc(n.when) + '</span>' +
-    '</button>').join('') +
-    '<button class="notif" data-clear="1"><span class="notif-kind">Clear all</span></button>';
-  panel.hidden = false;
-
-  $$('.notif', panel).forEach((el) => el.addEventListener('click', () => {
-    panel.hidden = true;
-    if (el.dataset.clear) { DB.seen = Date.now(); saveDB(); refreshBell(); return; }
-    go(list[+el.dataset.i].href);
-  }));
-}
-
-
-/* == 14. EXPORT & PRINT ===================================================
+/* == 12. EXPORT & PRINT ===================================================
    A Binder can leave as a single HTML file that needs nothing from Txtr:
    readable, printable, offline, and still holding its own source text so it
    can come back in (spec 21). Print uses the browser (spec 20).             */
@@ -2938,7 +2719,6 @@ const EXPORT_CSS = [
   'blockquote.quote{margin:1.85em 0;padding-left:1.35rem;border-left:2px solid var(--line);color:#98a0c4}',
   '.reply{border-left:2px solid var(--mag);padding-left:1.35rem;margin:-1.85em 0 1.85em}',
   '.reply-who{display:block;font-size:.625rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}',
-  '.reminder{display:flex;gap:.85rem;font-size:.8125rem;color:var(--orange);border-left:2px solid var(--orange);background:linear-gradient(90deg,rgba(255,158,100,.10),transparent 70%);border-radius:0 8px 8px 0;padding:.7rem 1rem;margin:1.6em 0}',
   '.mention{color:var(--blue)}',
   '.task{list-style:none;margin-left:-1.35em}.task-box{font-family:ui-monospace,Menlo,monospace;font-size:.8125em;color:var(--dim);margin-right:.55em}',
   'hr{border:0;border-top:1px solid var(--line);margin:2.75em 0}',
@@ -3072,7 +2852,7 @@ function printSheet(sheet) {
 }
 
 
-/* == 15. MENU =============================================================
+/* == 13. MENU =============================================================
    Everything that is not the text (spec 29), and the only documentation the
    product needs: the shortcuts for wherever you are right now live at the
    foot of this menu, so no strip of hints follows the text around. Nothing
@@ -3309,8 +3089,6 @@ function deleteSheet(idx, { intoPrevious = false } = {}) {
   const near = prev || App.doc.sheets[firstIdx] || null;
   renderBinder();
   renderChrome();
-  scheduleReminders();
-  refreshBell();
 
   if (intoPrevious && prev) {
     columnFor(prev.slug);
@@ -3362,12 +3140,11 @@ function renameBinder() {
 function closeOverlays() {
   closeMenu();
   closeTagMenu();
-  $('#notifs').hidden = true;
   if (Pal.open) closePalette();
 }
 
 
-/* == 16. KEYBOARD =========================================================
+/* == 14. KEYBOARD =========================================================
    Up and down move through sheets, left and right move through tags. That is
    the whole navigation model, and it is the same one touch uses (spec 30).  */
 
@@ -3495,7 +3272,7 @@ function scrollShelf() {
 }
 
 
-/* == 17. TOUCH ============================================================
+/* == 15. TOUCH ============================================================
    Vertical swiping is the browser's own scrolling with CSS snap, so a flick
    lands on a sheet instead of between two. Only the horizontal gesture needs
    code: left and right change tag (spec 31).                                */
@@ -3559,7 +3336,7 @@ function watchScroll() {
 }
 
 
-/* == 18. BOOT =============================================================
+/* == 16. BOOT =============================================================
    Open Txtr and you are already using it: no landing page, no signup, no
    tour (spec 26). On the very first run the sample Binder is seeded from the
    text kept in index.html — it is a document, so it is stored as one.       */
@@ -3607,7 +3384,6 @@ function boot() {
   $('#crumb-home').addEventListener('click', () => go('#/'));
   $('#crumb-binder').addEventListener('click', renameBinder);
   $('#search-btn').addEventListener('click', () => openPalette());
-  $('#bell').addEventListener('click', (e) => { e.stopPropagation(); toggleNotifications(); });
   $('#menu-btn').addEventListener('click', (e) => {
     e.stopPropagation();
     const menu = $('#menu');
@@ -3618,7 +3394,6 @@ function boot() {
   });
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.menu-wrap')) closeMenu();
-    if (!e.target.closest('#notifs') && !e.target.closest('#bell')) $('#notifs').hidden = true;
     if (!e.target.closest('#tag-menu') && !e.target.closest('.tag')) closeTagMenu();
   });
 
@@ -3658,9 +3433,6 @@ function boot() {
   watchScroll();
 
   route();
-  scheduleReminders();
-  refreshBell();
-  setInterval(refreshBell, 60000);
 }
 
 boot();
