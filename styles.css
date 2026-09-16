@@ -15,7 +15,7 @@
    02. RESET & STAGE
    03. AMBIENT (neon bloom)
    04. CHROME (topbar, tag rail, status bar, menu)
-   05. SHELF (the Binders)
+   05. SHELF (the Files)
    06. SHEETS (index, expansion, the lightline)
    07. PROSE (rendered text)
    08. TAGS (chips, editor)
@@ -54,7 +54,7 @@
   --glow-magenta: 0 0 16px rgba(187, 154, 247, .40);
 
   /* One sans family for everything the reader reads. Monospace appears only
-     where the content really is code or raw text. No webfonts: a Binder has
+     where the content really is code or raw text. No webfonts: a File has
      to render the same offline and inside its exported file. */
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
           "Inter", "Segoe UI Variable", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -207,7 +207,7 @@ body > .toast          { z-index: 70; }
 }
 .icon-btn:hover { color: var(--fg); background: var(--hover); }
 
-/* Tag rail — the horizontal dimension of the Binder (spec 8, 9, 10). */
+/* Tag rail — the horizontal dimension of the File (spec 8, 9, 10). */
 .tagrail {
   display: flex; justify-content: center; align-items: center;
   gap: 1.6rem;
@@ -303,7 +303,7 @@ kbd {
 
 
 /* == 05. SHELF ============================================================
-   Not a dashboard. The Binders, and nothing else (spec 28).                */
+   Not a dashboard. The Files, and nothing else (spec 28).                */
 
 .shelf-item {
   display: block; width: 100%;
@@ -558,7 +558,7 @@ table[data-b="table"] td:last-child, table[data-b="table"] th:last-child { paddi
 }
 
 
-/* The tag popover: the words this Binder already uses, and a field for one it
+/* The tag popover: the words this File already uses, and a field for one it
    does not. Anchored to whatever was clicked, closed by clicking anywhere. */
 .tag-menu {
   position: fixed; z-index: 65;
@@ -818,7 +818,7 @@ table[data-b="table"] td:last-child, table[data-b="table"] th:last-child { paddi
 
 
 /* == 12. PRINT ============================================================
-   Chrome disappears, every sheet opens, the Binder becomes a document
+   Chrome disappears, every sheet opens, the File becomes a document
    (spec 20). The browser's own print pipeline, no server.                  */
 
 @media print {

@@ -11,12 +11,12 @@
    module file later without rewiring the rest.
 
    01. UTILITIES
-   02. STORE            — persistence + Binder records
+   02. STORE            — persistence + File records
    03. PARSER           — text -> sheets, tags, mentions, quotes
    04. RENDERER         — parsed text -> HTML
    05. ROUTER           — hash URLs, deep links to sheets
-   06. VIEW: SHELF      — the list of Binders
-   07. VIEW: BINDER     — reading representation (index, spine, expansion)
+   06. VIEW: SHELF      — the list of Files
+   07. VIEW: FILE       — reading representation (index, spine, expansion)
    08. TAGS             — the horizontal dimension
    09. EDITING          — the sheet on screen is the one being written
    10. PALETTE          — find / ask / speak
@@ -95,14 +95,14 @@ function toastUndo(msg, onUndo, ms = 6000) {
 
 /* == 02. STORE ============================================================
    Local first, and local only: the client owns the document (spec 22). One
-   localStorage record holds every Binder plus the little state the interface
-   needs to remember. Surface: DB, saveDB(), getBinder(), newBinder(), ...    */
+   localStorage record holds every File plus the little state the interface
+   needs to remember. Surface: DB, saveDB(), getFile(), newFile(), ...    */
 
-const DB_KEY = 'binders.v2';
+const DB_KEY = 'files.v2';
 
 let DB = {
   identity: 'Felipe',      // who "me" is, for @mentions
-  binders: [],             // [{ id, title, text, created, updated }]
+  files: [],               // [{ id, title, text, created, updated }]
 };
 
 function loadDB() {
@@ -116,19 +116,19 @@ function loadDB() {
 
 const saveDB = debounce(() => {
   try { localStorage.setItem(DB_KEY, JSON.stringify(DB)); }
-  catch (e) { toast('Local storage is full — export this Binder'); }
+  catch (e) { toast('Local storage is full — export this File'); }
 }, 250);
 
-const getBinder = (id) => DB.binders.find((b) => b.id === id);
+const getFile = (id) => DB.files.find((b) => b.id === id);
 
-function newBinder(title = 'Untitled', text = '') {
+function newFile(title = 'Untitled', text = '') {
   const b = { id: uid(), title, text, created: Date.now(), updated: Date.now() };
-  DB.binders.unshift(b);
+  DB.files.unshift(b);
   saveDB();
   return b;
 }
 
-function writeBinder(b, text) {
+function writeFile(b, text) {
   if (text === b.text) return;       // nothing changed, nothing to undo either
   pushHistory(b);
   b.text = text;
@@ -136,8 +136,8 @@ function writeBinder(b, text) {
   saveDB();
 }
 
-function deleteBinder(id) {
-  DB.binders = DB.binders.filter((b) => b.id !== id);
+function deleteFile(id) {
+  DB.files = DB.files.filter((b) => b.id !== id);
   History.delete(id);
   saveDB();
 }
@@ -145,13 +145,13 @@ function deleteBinder(id) {
 
 /* == 02b. UNDO / REDO =====================================================
    The document is just text (spec 2), so undo is just text too: one stack
-   per Binder, of what writeBinder saw right before it overwrote it. Typing,
+   per File, of what writeFile saw right before it overwrote it. Typing,
    creating a sheet, deleting one, tagging — every edit goes through that one
    function, so Cmd+Z undoes all of them the same way, not just typing (which
    is all the browser's own undo, bypassed by the custom key handling below,
    would ever have known about). Surface: undo(), redo().                   */
 
-const History = new Map();          // binder id -> { undo: [text...], redo: [text...] }
+const History = new Map();          // file id -> { undo: [text...], redo: [text...] }
 const HISTORY_LIMIT = 200;
 
 function historyFor(id) {
@@ -172,13 +172,13 @@ function applyHistory(b, text) {
   b.text = text;
   b.updated = Date.now();
   saveDB();
-  if (App.binderId !== b.id) return;   // undone in the background — nothing on screen to refresh
+  if (App.fileId !== b.id) return;   // undone in the background — nothing on screen to refresh
 
   const openSlug = App.open;
   App.open = null;
   App.doc = parse(b.text);
   App.col = Math.min(App.col, App.doc.tags.length);
-  renderBinder();
+  renderFile();
   renderChrome();
 
   const reopen = openSlug && App.doc.sheets.find((c) => c.slug === openSlug);
@@ -190,7 +190,7 @@ function applyHistory(b, text) {
 }
 
 function undo() {
-  const b = getBinder(App.binderId);
+  const b = getFile(App.fileId);
   if (!b) return;
   if ($('.sheet.is-open')) writeOpenSheet();   // commit whatever is mid-keystroke first
   const h = historyFor(b.id);
@@ -200,7 +200,7 @@ function undo() {
 }
 
 function redo() {
-  const b = getBinder(App.binderId);
+  const b = getFile(App.fileId);
   if (!b) return;
   if ($('.sheet.is-open')) writeOpenSheet();
   const h = historyFor(b.id);
@@ -522,26 +522,26 @@ function renderBody(sheet, opts = {}) {
 
 /* == 05. ROUTER ===========================================================
    #/                     the shelf
-   #/<binder>             a Binder
-   #/<binder>/<sheet>      a Binder with that sheet open
-   #<sheet>                a plain fragment inside the Binder already open
+   #/<file>             a File
+   #/<file>/<sheet>      a File with that sheet open
+   #<sheet>                a plain fragment inside the File already open
    The sheet part is the heading's own id, so a sheet link is an ordinary anchor
    link (spec 6) and the back button works without any help.                 */
 
 const App = {
-  view: 'shelf',   // 'shelf' | 'binder'
-  binderId: null,
-  doc: null,       // parsed document of the open Binder
+  view: 'shelf',   // 'shelf' | 'file'
+  fileId: null,
+  doc: null,       // parsed document of the open File
   col: 0,          // tag column: 0 = all sheets, otherwise doc.tags[col - 1]
   cur: 0,          // index into the currently visible sheets
   open: null,      // slug of the expanded sheet, which is the one being written
-  namingBinderId: null,   // id of a just-created Binder still being named, on the shelf
+  namingFileId: null,   // id of a just-created File still being named, on the shelf
 };
 
 const go = (hash) => { location.hash = hash; };
 /** Same hash, same intent: re-run the route so the sheet still opens. */
 const navigate = (hash) => { if (location.hash === hash) route(); else go(hash); };
-const linkTo = (binderId, slug) => '#/' + binderId + (slug ? '/' + slug : '');
+const linkTo = (fileId, slug) => '#/' + fileId + (slug ? '/' + slug : '');
 
 function route() {
   const raw = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
@@ -549,17 +549,17 @@ function route() {
 
   if (!first) return show('shelf');
 
-  const b = getBinder(first);
-  if (b) return show('binder', b, second);
+  const b = getFile(first);
+  if (b) return show('file', b, second);
 
-  // A bare fragment (#authentication) resolves to the Binder on screen, or
-  // to whichever Binder has a sheet by that name — so a plain anchor link
+  // A bare fragment (#authentication) resolves to the File on screen, or
+  // to whichever File has a sheet by that name — so a plain anchor link
   // shared out of Txtr still lands on the sheet (spec 6).
-  const here = getBinder(App.binderId);
+  const here = getFile(App.fileId);
   const owner = (here && parse(here.text).sheets.some((c) => c.slug === first))
     ? here
-    : DB.binders.find((b2) => parse(b2.text).sheets.some((c) => c.slug === first));
-  if (owner) return show('binder', owner, first);
+    : DB.files.find((b2) => parse(b2.text).sheets.some((c) => c.slug === first));
+  if (owner) return show('file', owner, first);
 
   show('shelf');
 }
@@ -577,47 +577,47 @@ function columnFor(slug) {
   App.col = sheet.tag ? App.doc.tags.indexOf(sheet.tag) + 1 : 0;
 }
 
-function show(view, binder, slug) {
+function show(view, file, slug) {
   closeOverlays();
-  // Whatever is still unsaved in lead/trail belongs to the Binder on screen
+  // Whatever is still unsaved in lead/trail belongs to the File on screen
   // right now — commit it before App.doc points somewhere else.
-  if (App.view === 'binder') commitRegions();
+  if (App.view === 'file') commitRegions();
   if (view === 'shelf') {
-    App.view = 'shelf'; App.binderId = null; App.doc = null; App.open = null; App.cur = 0;
+    App.view = 'shelf'; App.fileId = null; App.doc = null; App.open = null; App.cur = 0;
     renderShelf();
   } else {
-    const changed = App.binderId !== binder.id;
-    App.view = 'binder';
-    App.binderId = binder.id;
-    App.doc = parse(binder.text);
+    const changed = App.fileId !== file.id;
+    App.view = 'file';
+    App.fileId = file.id;
+    App.doc = parse(file.text);
     if (changed) { App.col = 0; App.cur = 0; }
     App.open = slug || null;
     columnFor(App.open);
-    renderBinder();
+    renderFile();
   }
   renderChrome();
 }
 
 
 /* == 06. VIEW: SHELF ======================================================
-   Not a dashboard. The Binders, large, and nothing else (spec 28).          */
+   Not a dashboard. The Files, large, and nothing else (spec 28).          */
 
 function renderShelf() {
   const stage = $('#stage');
   // Whatever was touched last sits on top — the shelf is a desk, not an
   // archive in filing order.
-  const ordered = [...DB.binders].sort((a, z) => z.updated - a.updated);
+  const ordered = [...DB.files].sort((a, z) => z.updated - a.updated);
   const items = ordered.map((b, i) => {
     const d = parse(b.text);
-    // A Binder just created is named right here, in place — not a button
+    // A File just created is named right here, in place — not a button
     // yet, because a caret cannot live inside one (same reason a sheet's own
     // title is a div, not a button, once it is open).
-    const naming = b.id === App.namingBinderId;
+    const naming = b.id === App.namingFileId;
     const tag = naming ? 'div' : 'button';
     return '<' + tag + ' class="shelf-item' + (naming ? ' is-naming' : '') + '" ' +
       'data-id="' + b.id + '" data-i="' + i + '"' + (naming ? ' role="button" tabindex="-1"' : '') + '>' +
       '<h2 class="shelf-item-title"' +
-        (naming ? ' contenteditable="true" spellcheck="true" data-hint="Name this Binder"' : '') + '>' +
+        (naming ? ' contenteditable="true" spellcheck="true" data-hint="Name this File"' : '') + '>' +
         (naming ? '' : esc(b.title)) +
       '</h2>' +
       '<div class="shelf-item-meta">' +
@@ -629,7 +629,7 @@ function renderShelf() {
 
   stage.className = 'stage';
   stage.innerHTML = '<div class="column">' +
-    (items || '<p class="shelf-empty">No Binders yet. Press <kbd>B</kbd> and start writing.</p>') +
+    (items || '<p class="shelf-empty">No Files yet. Press <kbd>B</kbd> and start writing.</p>') +
   '</div>';
 
   $$('.shelf-item', stage).forEach((el) => {
@@ -639,14 +639,14 @@ function renderShelf() {
   markShelfCursor();
   renderTagRail();
 
-  if (App.namingBinderId) wireNaming();
+  if (App.namingFileId) wireNaming();
 }
 
-/** Commit whatever was typed as the Binder's name, then move on. */
-function commitBinderName(open) {
-  const id = App.namingBinderId;
-  const b = id && getBinder(id);
-  App.namingBinderId = null;
+/** Commit whatever was typed as the File's name, then move on. */
+function commitFileName(open) {
+  const id = App.namingFileId;
+  const b = id && getFile(id);
+  App.namingFileId = null;
   if (!b) return;
   const el = $('.shelf-item-title[contenteditable]');
   const name = el ? el.textContent.trim() : '';
@@ -655,7 +655,7 @@ function commitBinderName(open) {
 
   // Named, and still empty: land in the one writable place it has. A sheet
   // of its own is only "# " away, typed there like anywhere else (spec 4) —
-  // renderBinder() puts the caret there for any empty Binder, not just this one.
+  // renderFile() puts the caret there for any empty File, not just this one.
   go(linkTo(id));
 }
 
@@ -665,10 +665,10 @@ function wireNaming() {
   el.focus();
   el.addEventListener('keydown', (e) => {
     e.stopPropagation();
-    if (e.key === 'Enter') { e.preventDefault(); commitBinderName(true); }
-    if (e.key === 'Escape') { e.preventDefault(); commitBinderName(false); }
+    if (e.key === 'Enter') { e.preventDefault(); commitFileName(true); }
+    if (e.key === 'Escape') { e.preventDefault(); commitFileName(false); }
   });
-  el.addEventListener('blur', () => { if (App.namingBinderId) commitBinderName(false); });
+  el.addEventListener('blur', () => { if (App.namingFileId) commitFileName(false); });
 }
 
 function markShelfCursor() {
@@ -679,11 +679,11 @@ function markShelfCursor() {
 }
 
 
-/* == 07. VIEW: BINDER =====================================================
+/* == 07. VIEW: FILE =======================================================
    The reading representation: collapsed titles as an index, one sheet open
    at a time, and the lightline above the current one (spec 5).              */
 
-function renderBinder() {
+function renderFile() {
   const stage = $('#stage');
   commitRegions();          // absorb whatever is still unsaved in lead/trail first
   const doc = App.doc;
@@ -764,7 +764,7 @@ function renderBinder() {
   if (App.open) expand(App.open, { scroll: true });
   else if (doc.sheets.length) setCursor(App.cur, { scroll: false });
   // Nothing to read yet, nothing to click either: land the caret in the one
-  // writable thing on screen, the same as naming the Binder and opening it
+  // writable thing on screen, the same as naming the File and opening it
   // straight into writing does (a sheet of its own is only "# " away).
   else { const lead = $('#lead'); if (lead) placeCaret(lead.firstElementChild || lead, 'start'); }
 
@@ -818,7 +818,7 @@ function wireDragHandles(root) {
  * else in the file. Order is the only thing that changes (spec 9).
  */
 function moveSheet(from, to) {
-  const b = getBinder(App.binderId);
+  const b = getFile(App.fileId);
   if (!b || !App.doc) return;
   if (App.open) writeOpenSheet();          // commit first: line numbers below read App.doc fresh
   const sheets = App.doc.sheets;
@@ -832,9 +832,9 @@ function moveSheet(from, to) {
   chunks.splice(Math.max(0, Math.min(to, chunks.length)), 0, moved);
 
   const openSlug = App.open;
-  writeBinder(b, tidyLines([...lead, ...chunks.flat()]).join('\n') + '\n');
+  writeFile(b, tidyLines([...lead, ...chunks.flat()]).join('\n') + '\n');
   App.doc = parse(b.text);
-  renderBinder();
+  renderFile();
   const still = openSlug && App.doc.sheets.find((c) => c.slug === openSlug);
   if (still) expand(still.slug, { scroll: false });
 }
@@ -882,7 +882,7 @@ function expand(slug, { scroll = true } = {}) {
   li.classList.add('is-open');
   wireSheetBody(body);
 
-  const all = getBinder(App.binderId).text.split('\n');
+  const all = getFile(App.fileId).text.split('\n');
   const next = App.doc.sheets[App.doc.sheets.indexOf(sheet) + 1];
   Edit.from = sheet.line;
   Edit.to = next ? next.line : all.length;
@@ -893,8 +893,8 @@ function expand(slug, { scroll = true } = {}) {
   makeEditable(li, sheet);
 
   setCursor(visible().indexOf(li), { scroll, align: 'start' });
-  if (location.hash !== linkTo(App.binderId, slug)) {
-    history.replaceState(null, '', linkTo(App.binderId, slug));
+  if (location.hash !== linkTo(App.fileId, slug)) {
+    history.replaceState(null, '', linkTo(App.fileId, slug));
   }
 }
 
@@ -909,7 +909,7 @@ function collapse({ keepHash = false } = {}) {
   App.open = null;
   Edit.from = Edit.to = -1;
   Edit.dirty = false;
-  if (!keepHash && App.binderId) history.replaceState(null, '', linkTo(App.binderId));
+  if (!keepHash && App.fileId) history.replaceState(null, '', linkTo(App.fileId));
 }
 
 /**
@@ -939,7 +939,7 @@ function wireSheetBody(body) {
 }
 
 function copyLink(sheet) {
-  const url = location.origin + location.pathname + linkTo(App.binderId, sheet.slug);
+  const url = location.origin + location.pathname + linkTo(App.fileId, sheet.slug);
   if (navigator.clipboard) {
     navigator.clipboard.writeText(url)
       .then(() => toast('Link copied. It opens on this sheet.'))
@@ -956,7 +956,7 @@ function copyLink(sheet) {
 function renderTagRail() {
   const rail = $('#tagrail');
   const tags = App.doc ? App.doc.tags : [];
-  if (App.view !== 'binder' || !tags.length) { rail.hidden = true; rail.innerHTML = ''; return; }
+  if (App.view !== 'file' || !tags.length) { rail.hidden = true; rail.innerHTML = ''; return; }
 
   const count = (t) => App.doc.sheets.filter((c) => c.tag === t).length;
   rail.hidden = false;
@@ -975,7 +975,7 @@ function renderTagRail() {
  * anywhere, so it stops existing when the last sheet stops mentioning it.
  */
 function dropTag(tag) {
-  const b = getBinder(App.binderId);
+  const b = getFile(App.fileId);
   if (!b) return;
   const n = App.doc.sheets.filter((c) => c.tag === tag).length;
   if (!confirm('Remove the tag "' + tag + '" from ' + n +
@@ -987,11 +987,11 @@ function dropTag(tag) {
     if (c.tag !== tag) return;
     lines[c.line] = ('#'.repeat(c.level) + ' ' + c.title).trim();
   });
-  writeBinder(b, lines.join('\n'));
+  writeFile(b, lines.join('\n'));
 
   App.doc = parse(b.text);
   App.col = 0;
-  renderBinder();
+  renderFile();
   if (open && App.doc.sheets.some((c) => c.slug === open)) expand(open, { scroll: false });
   toast('Tag removed');
 }
@@ -1020,7 +1020,7 @@ const openColumn = (tag) => {
 };
 
 /**
- * The tags this Binder already uses, as one press each, plus a field for one
+ * The tags this File already uses, as one press each, plus a field for one
  * it does not. Opened from a sheet's own chip — a tag is not a record
  * anywhere, it is a word on a sheet's title line, so the only way to make
  * one is to give it to a sheet (spec 9).
@@ -1083,17 +1083,17 @@ function closeTagMenu() {
 /** One tag in, the heading line rewritten. An empty value removes it. */
 function setSheetTag(sheet, value) {
   const tag = String(value || '').split(/[\s,#]+/).filter(Boolean)[0] || '';
-  const b = getBinder(App.binderId);
+  const b = getFile(App.fileId);
   const lines = b.text.split('\n');
   lines[sheet.line] = ('#'.repeat(sheet.level) + ' ' + sheet.title + (tag ? '  #' + tag : '')).trim();
-  writeBinder(b, lines.join('\n'));
+  writeFile(b, lines.join('\n'));
 
   App.doc = parse(b.text);
   const still = App.doc.sheets.find((c) => c.slug === sheet.slug);
   // Retagging can move the sheet out of the column it is being read in, so the
   // column follows it rather than filtering away the sheet still on screen.
   if (still) columnFor(still.slug);
-  renderBinder();
+  renderFile();
   if (still) expand(still.slug, { scroll: false });
   toast(tag ? 'Tagged ' + tag : 'Tag removed');
 }
@@ -1278,11 +1278,11 @@ const touched = () => { Edit.dirty = true; };
 
 /**
  * Rewrite this sheet's own lines from the DOM, leaving every other line in
- * the Binder untouched. Returns what changed, so the caller can decide
+ * the File untouched. Returns what changed, so the caller can decide
  * whether the rest of the screen needs to catch up.
  */
 function replaceSheetLines(li, bodyLines) {
-  const b = getBinder(App.binderId);
+  const b = getFile(App.fileId);
   const idx = +li.dataset.i;
   const titleEl = $('.sheet-title', li);
   if (!b || !App.doc || !titleEl || Edit.from < 0) return null;
@@ -1299,10 +1299,10 @@ function replaceSheetLines(li, bodyLines) {
 
   Edit.to = Edit.from + block.length;      // the region is this long now
   const was = App.doc.sheets.length;
-  writeBinder(b, text);
+  writeFile(b, text);
   App.doc = parse(b.text);
 
-  // A Binder with no name of its own borrows the first sheet's, once that
+  // A File with no name of its own borrows the first sheet's, once that
   // sheet has one.
   if (/^untitled$/i.test(b.title) && App.doc.sheets[0] && App.doc.sheets[0].named) {
     b.title = App.doc.sheets[0].title;
@@ -1315,7 +1315,7 @@ function replaceSheetLines(li, bodyLines) {
     li.dataset.slug = now.slug;
     li.id = now.slug;
     App.open = now.slug;
-    history.replaceState(null, '', linkTo(App.binderId, now.slug));
+    history.replaceState(null, '', linkTo(App.fileId, now.slug));
   }
   return { idx, sheets: App.doc.sheets.length, changed: true, split: App.doc.sheets.length !== was };
 }
@@ -1761,7 +1761,7 @@ function commitSheet(li, block) {
   writeOpenSheet();
   inheritColumnTag(App.doc.sheets[idx + 1 + nth], openTag);
   const made = App.doc.sheets[idx + 1 + nth];
-  renderBinder();
+  renderFile();
   if (made) {
     const row = sheetBySlug(made.slug);
     columnFor(made.slug);
@@ -1950,7 +1950,7 @@ function onEditPaste(e, el) {
 
   const r = replaceSheetLines(li, tidyLines(out));
   App.col = 0;                       // a pasted heading may belong elsewhere
-  renderBinder();
+  renderFile();
   const landed = App.doc.sheets[r ? r.idx : 0];
   if (!landed) return;
   expand(landed.slug, { scroll: false });
@@ -1999,7 +1999,7 @@ function leaveSheet() {
   const r = writeOpenSheet();
   const slug = App.open;
   collapse();
-  if (r && r.split) { renderBinder(); }
+  if (r && r.split) { renderFile(); }
   const li = slug && sheetBySlug(slug);
   if (li) setCursor(visible().indexOf(li), { scroll: true });
   renderTagRail();
@@ -2029,7 +2029,7 @@ const RegionEdit = { lead: { from: -1, to: -1 }, trail: { from: -1, to: -1 } };
 function regionRange(kind) {
   const r = RegionEdit[kind];
   if (r.from < 0) {
-    const lines = getBinder(App.binderId).text.split('\n');
+    const lines = getFile(App.fileId).text.split('\n');
     if (kind === 'lead') {
       const first = App.doc.sheets[0];
       r.from = 0; r.to = first ? first.line : lines.length;
@@ -2043,7 +2043,7 @@ function regionRange(kind) {
 /** Write this region's DOM back into its own range, and nowhere else. */
 function commitRegion(kind) {
   const el = $('#' + kind);
-  const b = getBinder(App.binderId);
+  const b = getFile(App.fileId);
   if (!el || !b || !App.doc) return false;
   const { from, to } = regionRange(kind);
   const bodyLines = serializeBody(el);
@@ -2054,7 +2054,7 @@ function commitRegion(kind) {
   const text = [...lines.slice(0, from), ...block, ...lines.slice(to)].join('\n');
   RegionEdit[kind].to = from + block.length;
   if (text === b.text) return false;
-  writeBinder(b, text);
+  writeFile(b, text);
   App.doc = parse(b.text);
   return true;
 }
@@ -2083,7 +2083,7 @@ function commitPendingSheet(el, kind, block) {
   if (!made) return;
   const slug = made.slug;
   inheritColumnTag(made);
-  renderBinder();
+  renderFile();
   columnFor(slug);
   expand(slug, { scroll: true });
   const body = $('.prose', sheetBySlug(slug));
@@ -2139,12 +2139,12 @@ function onRegionPaste(e, el, kind) {
   if (!tops.length) raw.split('\n').forEach((l) => out.push(l));
 
   const { from, to } = regionRange(kind);
-  const b = getBinder(App.binderId);
+  const b = getFile(App.fileId);
   const lines = b.text.split('\n');
   const text = tidyLines([...lines.slice(0, from), ...tidyLines(out), '', ...lines.slice(to)]).join('\n');
-  writeBinder(b, text);
+  writeFile(b, text);
   App.doc = parse(b.text);
-  renderBinder();
+  renderFile();
   const el2 = $('#' + kind);
   if (el2) placeCaret(el2, kind === 'lead' ? 'start' : 'end');
 }
@@ -2166,7 +2166,7 @@ function wireRegion(el, kind) {
   el.addEventListener('blur', () => {
     const hadPendingSheet = !!$('[data-b="sheet"]', el);
     if (!commitRegion(kind)) return;
-    if (hadPendingSheet) { setTimeout(renderBinder, 0); return; }
+    if (hadPendingSheet) { setTimeout(renderFile, 0); return; }
     // Plain text just committed into the tail of the last sheet (or, for
     // lead, is already showing correctly where it stands) — trail resets so
     // the same words are not also left sitting below the index.
@@ -2195,11 +2195,11 @@ function fillRegion(kind, lines) {
 /* == CHROME RENDERING ===================================================== */
 
 function renderChrome() {
-  const inBinder = App.view === 'binder';
-  const b = inBinder ? getBinder(App.binderId) : null;
-  $('#crumb-sep').hidden = !inBinder;
-  const crumb = $('#crumb-binder');
-  crumb.hidden = !inBinder;
+  const inFile = App.view === 'file';
+  const b = inFile ? getFile(App.fileId) : null;
+  $('#crumb-sep').hidden = !inFile;
+  const crumb = $('#crumb-file');
+  crumb.hidden = !inFile;
   if (b) crumb.textContent = b.title;
   document.title = b ? b.title + ' — Txtr' : 'Txtr';
 }
@@ -2216,8 +2216,8 @@ function openPalette(prefill = '') {
   Pal.open = true;
   Pal.mode = 'find';
   $('#palette').hidden = false;
-  $('#term-scope').textContent = App.view === 'binder'
-    ? getBinder(App.binderId).title : 'All Binders';
+  $('#term-scope').textContent = App.view === 'file'
+    ? getFile(App.fileId).title : 'All Files';
   const input = $('#term-input');
   input.value = prefill;
   input.focus();
@@ -2243,22 +2243,22 @@ function setMode(mode) {
 /** Everything searchable, built from the text on demand — no search index. */
 function corpus() {
   const rows = [];
-  DB.binders.forEach((b) => {
+  DB.files.forEach((b) => {
     const doc = parse(b.text);
-    rows.push({ kind: 'binder', binder: b, title: b.title, text: b.title, href: linkTo(b.id) });
+    rows.push({ kind: 'file', file: b, title: b.title, text: b.title, href: linkTo(b.id) });
     doc.tags.forEach((t) => rows.push({
-      kind: 'tag', binder: b, title: '#' + t, text: t,
+      kind: 'tag', file: b, title: '#' + t, text: t,
       href: linkTo(b.id), tag: t,
     }));
     doc.sheets.forEach((c) => {
       rows.push({
-        kind: 'sheet', binder: b, sheet: c, title: c.title,
+        kind: 'sheet', file: b, sheet: c, title: c.title,
         text: c.title + ' ' + (c.tag || ''), href: linkTo(b.id, c.slug),
       });
       c.lines.forEach((l) => {
         const t = l.trim();
         if (t.length > 2) rows.push({
-          kind: 'text', binder: b, sheet: c, title: t, text: t,
+          kind: 'text', file: b, sheet: c, title: t, text: t,
           href: linkTo(b.id, c.slug),
         });
       });
@@ -2306,9 +2306,9 @@ function score(row, words, q) {
   if (hits === words.length) s += 240;           // everything asked for is here
   if (hay.includes(q)) s += 120;                 // and in the order it was typed
   if (row.kind === 'sheet') s += 60;
-  if (row.kind === 'binder') s += 40;
+  if (row.kind === 'file') s += 40;
   if (row.kind === 'tag') s += 30;
-  if (row.binder.id === App.binderId) s += 25;   // where you already are wins
+  if (row.file.id === App.fileId) s += 25;   // where you already are wins
   return s;
 }
 
@@ -2325,9 +2325,9 @@ function runPalette() {
   const results = $('#results');
   if (!q) {
     // With an empty field the palette is a table of contents.
-    Pal.items = corpus().filter((r) => r.kind === 'sheet' || r.kind === 'binder')
-      .filter((r) => App.view !== 'binder' || r.binder.id === App.binderId ||
-        r.kind === 'binder').slice(0, 10);
+    Pal.items = corpus().filter((r) => r.kind === 'sheet' || r.kind === 'file')
+      .filter((r) => App.view !== 'file' || r.file.id === App.fileId ||
+        r.kind === 'file').slice(0, 10);
   } else {
     const words = terms(q);
     Pal.items = corpus().map((r) => ({ r, s: score(r, words, q.toLowerCase()) }))
@@ -2340,7 +2340,7 @@ function runPalette() {
   wireResults();
 }
 
-const KIND_LABEL = { sheet: 'Sheet', text: 'Text', tag: 'Tag', binder: 'Binder' };
+const KIND_LABEL = { sheet: 'Sheet', text: 'Text', tag: 'Tag', file: 'File' };
 
 function renderResults(items, words) {
   let html = '', lastKind = null;
@@ -2349,8 +2349,8 @@ function renderResults(items, words) {
       html += '<div class="res-group">' + KIND_LABEL[r.kind] + '</div>';
       lastKind = r.kind;
     }
-    const where = r.kind === 'binder' ? ago(r.binder.updated)
-      : (r.sheet ? r.binder.title + ' · #' + r.sheet.slug : r.binder.title);
+    const where = r.kind === 'file' ? ago(r.file.updated)
+      : (r.sheet ? r.file.title + ' · #' + r.sheet.slug : r.file.title);
     html += '<button class="res' + (i === 0 ? ' is-sel' : '') + '" data-i="' + i + '">' +
       '<span class="res-main">' + highlight(r.title, words) + '</span>' +
       '<span class="res-sub">' + esc(where) + '</span></button>';
@@ -2397,7 +2397,7 @@ function openResult(r) {
 
 
 /* == 11. ANSWERS ==========================================================
-   The answer comes out of the user's own Binders, on this device: retrieval
+   The answer comes out of the user's own Files, on this device: retrieval
    over the text, not a second place for information to live (spec 13). When
    the browser ships an on-device model (Chrome's `LanguageModel`, i.e.
    Gemini Nano) it writes the actual sentence, still grounded only in the
@@ -2427,12 +2427,12 @@ async function ask(q) {
   }
 
   // Ask stays inside whatever Find already scoped to (spec 13's "your own
-  // Binders" means the one you're standing in when you're in one, same as
-  // the palette's own "SAVII INVOICES" vs "All Binders" label promises) —
-  // otherwise an open question can get answered from some other Binder
+  // Files" means the one you're standing in when you're in one, same as
+  // the palette's own "SAVII INVOICES" vs "All Files" label promises) —
+  // otherwise an open question can get answered from some other File
   // entirely and there is no way to tell where that answer even came from.
-  const inBinder = App.view === 'binder';
-  const scope = inBinder ? [getBinder(App.binderId)].filter(Boolean) : DB.binders;
+  const inFile = App.view === 'file';
+  const scope = inFile ? [getFile(App.fileId)].filter(Boolean) : DB.files;
 
   // Rank sheets by how much of the question they actually contain.
   const hits = [];
@@ -2453,9 +2453,9 @@ async function ask(q) {
 
   if (!hits.length) {
     results.innerHTML = '<div class="answer">' +
-      '<p class="answer-body">Nothing in ' + (inBinder ? 'this Binder' : 'your Binders') + ' mentions that yet.</p>' +
-      '<p class="answer-note">Searched ' + (inBinder ? esc(scope[0].title)
-        : DB.binders.length + (DB.binders.length === 1 ? ' Binder' : ' Binders')) + ' on this device</p></div>';
+      '<p class="answer-body">Nothing in ' + (inFile ? 'this File' : 'your Files') + ' mentions that yet.</p>' +
+      '<p class="answer-note">Searched ' + (inFile ? esc(scope[0].title)
+        : DB.files.length + (DB.files.length === 1 ? ' File' : ' Files')) + ' on this device</p></div>';
     return;
   }
 
@@ -2576,7 +2576,7 @@ async function answerOnDevice(q, hits, terms) {
     session = await LanguageModel.create({
       initialPrompts: [{
         role: 'system',
-        content: 'The notes below are from the user\'s own Binder. Answer the question using only ' +
+        content: 'The notes below are from the user\'s own File. Answer the question using only ' +
           "what's in them, in 1-3 short sentences, as if you already knew it — don't mention " +
           '"notes" or how this information was given to you. If they don\'t say, say plainly that ' +
           "it isn't written down anywhere, without guessing.\n\n" + context,
@@ -2605,7 +2605,7 @@ function renderAnswer(top, reply, questionTerms, note) {
     })();
 
   Pal.items = top.map((h) => ({
-    kind: 'sheet', binder: h.b, sheet: h.c, title: h.c.title,
+    kind: 'sheet', file: h.b, sheet: h.c, title: h.c.title,
     href: linkTo(h.b.id, h.c.slug),
   }));
 
@@ -2638,20 +2638,20 @@ function bestSentence(text, terms) {
 
 /** Voice and typing both land here: speech becomes text becomes a sheet. */
 function commandAddSheet(rest) {
-  let binder = getBinder(App.binderId);
-  if (!binder) binder = DB.binders[0] || newBinder('Notes');
+  let file = getFile(App.fileId);
+  if (!file) file = DB.files[0] || newFile('Notes');
 
   // "pricing. we decided on R$25" -> title is the first clause, body the rest.
   const split = rest.match(/^([^.:;\n]{2,60})(?:[.:;]\s*(.+))?$/s);
   const title = (split ? split[1] : rest).trim().replace(/\s+/g, ' ');
   const body = split && split[2] ? split[2].trim() : '';
-  const text = binder.text.replace(/\s*$/, '') +
+  const text = file.text.replace(/\s*$/, '') +
     '\n\n# ' + title.charAt(0).toUpperCase() + title.slice(1) + '\n\n' + body + '\n';
-  writeBinder(binder, text);
+  writeFile(file, text);
 
   closePalette();
   const slug = parse(text).sheets.slice(-1)[0].slug;
-  go(linkTo(binder.id, slug));
+  go(linkTo(file.id, slug));
   toast('Sheet added');
 }
 
@@ -2691,7 +2691,7 @@ function stopListening() {
 
 
 /* == 12. EXPORT & PRINT ===================================================
-   A Binder can leave as a single HTML file that needs nothing from Txtr:
+   A File can leave as a single HTML file that needs nothing from Txtr:
    readable, printable, offline, and still holding its own source text so it
    can come back in (spec 21). Print uses the browser (spec 20).             */
 
@@ -2748,16 +2748,16 @@ function buildExport(b) {
     '<title>' + esc(b.title) + '</title><meta name="color-scheme" content="dark">' +
     '<style>' + EXPORT_CSS + '</style></head><body><div class="wrap">' +
     '<h1>' + esc(b.title) + '</h1>' + lead + sheets +
-    '<footer>Binder saved ' + new Date().toLocaleString() + ' &middot; open, print or email this file</footer>' +
+    '<footer>File saved ' + new Date().toLocaleString() + ' &middot; open, print or email this file</footer>' +
     '</div>' +
-    '<script type="text/markdown" id="binder-source">' + source + '</' + 'script>' +
+    '<script type="text/markdown" id="file-source">' + source + '</' + 'script>' +
     '<script>document.addEventListener("DOMContentLoaded",function(){' +
     'var id=location.hash.slice(1);if(!id)return;var d=document.getElementById(id);' +
     'if(d){d.open=true;d.scrollIntoView();}});</' + 'script>' +
     '</body></html>';
 }
 
-function exportBinder(b) {
+function exportFile(b) {
   if (!b) return;
   const blob = new Blob([buildExport(b)], { type: 'text/html' });
   const a = document.createElement('a');
@@ -2768,9 +2768,9 @@ function exportBinder(b) {
   toast('Saved ' + a.download);
 }
 
-/** The whole Binder, as the plain text it already is, on the clipboard —
+/** The whole File, as the plain text it already is, on the clipboard —
  * paste it into any other editor and nothing is lost (spec 22). */
-function copyBinderText(b) {
+function copyFileText(b) {
   if (!b) return;
   const text = b.text.trim() + '\n';
   if (!navigator.clipboard) return toast(text);
@@ -2790,12 +2790,12 @@ function importFile() {
     const reader = new FileReader();
     reader.onload = () => {
       let text = String(reader.result);
-      // An exported Binder carries its own source; use that instead of HTML.
-      const m = /<script type="text\/markdown" id="binder-source">([\s\S]*?)<\/script>/i.exec(text);
+      // An exported File carries its own source; use that instead of HTML.
+      const m = /<script type="text\/markdown" id="file-source">([\s\S]*?)<\/script>/i.exec(text);
       if (m) text = m[1].replace(/<\\\/script/gi, '</script');
       else if (/^\s*<(!doctype|html)/i.test(text)) text = htmlToText(text);
       const first = /^#{1,2}\s+(.+)$/m.exec(text);
-      const b = newBinder((first ? first[1] : file.name.replace(/\.[^.]+$/, '')).trim(), text);
+      const b = newFile((first ? first[1] : file.name.replace(/\.[^.]+$/, '')).trim(), text);
       go(linkTo(b.id));
       toast('Imported ' + file.name);
     };
@@ -2825,8 +2825,8 @@ function htmlToText(html) {
   return walk(d).replace(/\n{3,}/g, '\n\n').trim();
 }
 
-/** Print the whole Binder: every sheet open, no chrome (spec 20). */
-function printBinder() {
+/** Print the whole File: every sheet open, no chrome (spec 20). */
+function printFile() {
   const wasOpen = App.open;
   $$('.sheet').forEach((li, i) => {
     const sheet = App.doc.sheets[i];
@@ -2836,7 +2836,7 @@ function printBinder() {
     li.classList.remove('is-hidden');
   });
   window.print();
-  setTimeout(() => { renderBinder(); if (wasOpen) expand(wasOpen, { scroll: false }); }, 300);
+  setTimeout(() => { renderFile(); if (wasOpen) expand(wasOpen, { scroll: false }); }, 300);
 }
 
 /** Print one sheet: the other rows are hidden for the duration. */
@@ -2861,29 +2861,29 @@ function printSheet(sheet) {
 
 function renderMenu() {
   const menu = $('#menu');
-  const inBinder = App.view === 'binder';
-  const openSheet = inBinder && App.open && App.doc.sheets.find((c) => c.slug === App.open);
+  const inFile = App.view === 'file';
+  const openSheet = inFile && App.open && App.doc.sheets.find((c) => c.slug === App.open);
   const item = (label, key, act) =>
     '<button class="menu-item" role="menuitem" data-act="' + act + '"><span>' + label + '</span>' +
     '<span class="menu-item-key">' + (key || '') + '</span></button>';
 
   menu.innerHTML =
-    (inBinder
+    (inFile
       ? item('New sheet', 'S', 'sheet') +
         (openSheet ? item('Copy sheet link', '', 'link') : '') +
         (openSheet ? item('Print sheet', '', 'print-sheet') : '') +
         item('Copy as text', '', 'copytext') +
         item('Save as HTML file', '&#8984;S', 'export') +
-        item('Print Binder', '&#8984;P', 'print') +
-        item('Rename Binder', '', 'rename') +
+        item('Print File', '&#8984;P', 'print') +
+        item('Rename File', '', 'rename') +
         '<hr class="menu-sep">'
       : '') +
-    item('New Binder', 'B', 'new') +
+    item('New File', 'B', 'new') +
     item('Open a file', '', 'import') +
     (openSheet ? '<hr class="menu-sep">' + '<button class="menu-item is-danger" role="menuitem" data-act="delete-sheet">' +
       '<span>Delete this sheet</span></button>' : '') +
-    (inBinder ? '<hr class="menu-sep">' + '<button class="menu-item is-danger" role="menuitem" data-act="delete">' +
-      '<span>Delete this Binder</span></button>' : '') +
+    (inFile ? '<hr class="menu-sep">' + '<button class="menu-item is-danger" role="menuitem" data-act="delete">' +
+      '<span>Delete this File</span></button>' : '') +
     '<hr class="menu-sep">' + shortcutsBlock();
 
   $$('.menu-item', menu).forEach((el) => el.addEventListener('click', () => {
@@ -2904,7 +2904,7 @@ function shortcutsBlock() {
   const rows = [];
   let where, count = '';
 
-  if (App.view === 'binder' && App.open) {
+  if (App.view === 'file' && App.open) {
     const list = visible();
     where = 'Writing';
     if (list.length) count = (App.cur + 1) + ' / ' + list.length;
@@ -2916,9 +2916,9 @@ function shortcutsBlock() {
       '<div class="menu-note">A line starting with # is a heading, and Enter ' +
       'turns it into a sheet of its own. Every keystroke is saved on this ' +
       'device.</div>');
-  } else if (App.view === 'binder') {
+  } else if (App.view === 'file') {
     const list = visible();
-    where = 'Binder';
+    where = 'File';
     if (list.length) count = (App.cur + 1) + ' / ' + list.length;
     rows.push(row('Move', '&#8593;', '&#8595;'));
     if (App.doc && App.doc.tags.length) rows.push(row('Change tag', '&#8592;', '&#8594;'));
@@ -2933,7 +2933,7 @@ function shortcutsBlock() {
     if (items.length) count = (App.cur + 1) + ' / ' + items.length;
     rows.push(
       row('Move', '&#8593;', '&#8595;'),
-      row('Open a Binder', '&#8629;'),
+      row('Open a File', '&#8629;'),
       row('Find or ask', '&#8984;K'));
   }
 
@@ -2947,18 +2947,18 @@ function closeMenu() {
 }
 
 function menuAction(act) {
-  const b = getBinder(App.binderId);
+  const b = getFile(App.fileId);
   const openSheet = App.open && App.doc.sheets.find((c) => c.slug === App.open);
   switch (act) {
     case 'sheet':   addSheet(); break;
     case 'link':    if (openSheet) copyLink(openSheet); break;
     case 'print-sheet': if (openSheet) printSheet(openSheet); break;
-    case 'copytext': copyBinderText(b); break;
-    case 'export':  exportBinder(b); break;
-    case 'print':   printBinder(); break;
-    case 'new':     createBinder(); break;
+    case 'copytext': copyFileText(b); break;
+    case 'export':  exportFile(b); break;
+    case 'print':   printFile(); break;
+    case 'new':     createFile(); break;
     case 'import':  importFile(); break;
-    case 'rename':  renameBinder(); break;
+    case 'rename':  renameFile(); break;
     case 'delete-sheet': {
       if (!openSheet) break;
       const li = sheetBySlug(openSheet.slug);
@@ -2967,11 +2967,11 @@ function menuAction(act) {
     }
     case 'delete': {
       if (!b) break;
-      const at = DB.binders.indexOf(b);
-      deleteBinder(b.id);
+      const at = DB.files.indexOf(b);
+      deleteFile(b.id);
       go('#/');
       toastUndo('Deleted "' + b.title + '"', () => {
-        DB.binders.splice(Math.min(at, DB.binders.length), 0, b);
+        DB.files.splice(Math.min(at, DB.files.length), 0, b);
         saveDB();
         go(linkTo(b.id));
       });
@@ -2981,15 +2981,15 @@ function menuAction(act) {
 }
 
 /**
- * A Binder is never empty, and it is never nameless either: press B and it
+ * A File is never empty, and it is never nameless either: press B and it
  * exists right away, on the shelf, its name being typed in place — the same
  * way a sheet's own title is typed once it exists, just one screen over.
  */
-function createBinder() {
-  if (App.namingBinderId) commitBinderName(false);   // finish naming a previous one first
-  const b = newBinder('Untitled', '');   // no sheet yet — that is only "# " away
-  App.namingBinderId = b.id;
-  App.cur = 0;                        // newest Binder sits first
+function createFile() {
+  if (App.namingFileId) commitFileName(false);   // finish naming a previous one first
+  const b = newFile('Untitled', '');   // no sheet yet — that is only "# " away
+  App.namingFileId = b.id;
+  App.cur = 0;                        // newest File sits first
   if (App.view === 'shelf') renderShelf(); else go('#/');
 }
 
@@ -3004,10 +3004,10 @@ function inheritColumnTag(sheet, preferredTag) {
   // truer than whichever column happens to be on screen right now.
   const tag = preferredTag || (App.col !== 0 ? App.doc.tags[App.col - 1] : null);
   if (!tag) return;
-  const b = getBinder(App.binderId);
+  const b = getFile(App.fileId);
   const lines = b.text.split('\n');
   lines[sheet.line] = lines[sheet.line].replace(/\s*$/, '') + '  #' + tag;
-  writeBinder(b, lines.join('\n'));
+  writeFile(b, lines.join('\n'));
   App.doc = parse(b.text);
 }
 
@@ -3017,7 +3017,7 @@ function inheritColumnTag(sheet, preferredTag) {
  * to be inside a sheet already.
  */
 function addSheet() {
-  const b = getBinder(App.binderId);
+  const b = getFile(App.fileId);
   if (!b || !App.doc) return;
   const openTag = App.open ? Edit.tag : null;
   if (App.open) writeOpenSheet();
@@ -3027,12 +3027,12 @@ function addSheet() {
   let at = here ? here.line + 1 + here.lines.length : lines.length;
   while (at > 0 && !String(lines[at - 1] || '').trim()) at--;   // sit against the text
   lines.splice(at, 0, '', '# ');
-  writeBinder(b, lines.join('\n'));
+  writeFile(b, lines.join('\n'));
 
   App.doc = parse(b.text);
   inheritColumnTag(App.doc.sheets.find((c) => c.line === at + 1), openTag);
   const made = App.doc.sheets.find((c) => c.line === at + 1);
-  renderBinder();
+  renderFile();
   if (!made) return;
   expand(made.slug, { scroll: true });
   const title = $('.sheet.is-open .sheet-title');
@@ -3040,7 +3040,7 @@ function addSheet() {
 }
 
 /**
- * Remove a sheet: its heading and its body, and nothing else in the Binder.
+ * Remove a sheet: its heading and its body, and nothing else in the File.
  * Deleting the sheet being written in leaves the caret at the end of the one
  * before it, the way backspacing out of anything else would.
  */
@@ -3050,9 +3050,9 @@ function deleteSheet(idx, { intoPrevious = false } = {}) {
   // goes.
   const idxs = [...new Set(Array.isArray(idx) ? idx : [idx])]
     .filter((i) => App.doc && App.doc.sheets[i]).sort((a, z) => a - z);
-  const b = getBinder(App.binderId);
+  const b = getFile(App.fileId);
   if (!b || !idxs.length) return;
-  const binderId = b.id;
+  const fileId = b.id;
   const sheets = idxs.map((i) => App.doc.sheets[i]);
   const name = sheets.length === 1
     ? (sheets[0].named ? sheets[0].title : 'the sheet')
@@ -3068,7 +3068,7 @@ function deleteSheet(idx, { intoPrevious = false } = {}) {
     const next = App.doc.sheets[idxs[k] + 1];
     removed.unshift(lines.splice(sheet.line, (next ? next.line : lines.length) - sheet.line));
   }
-  writeBinder(b, tidyLines(lines).join('\n') + '\n');
+  writeFile(b, tidyLines(lines).join('\n') + '\n');
 
   App.open = null;
   App.doc = parse(b.text);
@@ -3076,7 +3076,7 @@ function deleteSheet(idx, { intoPrevious = false } = {}) {
   const firstIdx = idxs[0];
   const prev = App.doc.sheets[firstIdx - 1];
   const near = prev || App.doc.sheets[firstIdx] || null;
-  renderBinder();
+  renderFile();
   renderChrome();
 
   if (intoPrevious && prev) {
@@ -3095,7 +3095,7 @@ function deleteSheet(idx, { intoPrevious = false } = {}) {
   // not (spec 6), so that is what finds the way back for it.
   const afterSlug = prev ? prev.slug : null;
   toastUndo('Deleted ' + name, () => {
-    const bb = getBinder(binderId);
+    const bb = getFile(fileId);
     if (!bb) return;
     const backLines = bb.text.split('\n');
     const doc = parse(bb.text);
@@ -3103,11 +3103,11 @@ function deleteSheet(idx, { intoPrevious = false } = {}) {
     let at = after ? after.line + 1 + after.lines.length : 0;
     while (at > 0 && !String(backLines[at - 1] || '').trim()) at--;
     backLines.splice(at, 0, ...removed.flat());
-    writeBinder(bb, backLines.join('\n'));
-    if (App.binderId !== binderId) return;
+    writeFile(bb, backLines.join('\n'));
+    if (App.fileId !== fileId) return;
     App.doc = parse(bb.text);
     const restored = App.doc.sheets.find((c) => c.line === at);
-    renderBinder();
+    renderFile();
     if (restored) { columnFor(restored.slug); expand(restored.slug, { scroll: true }); }
   });
 }
@@ -3118,10 +3118,10 @@ function currentSheetIndex() {
   return li ? +li.dataset.i : -1;
 }
 
-function renameBinder() {
-  const b = getBinder(App.binderId);
+function renameFile() {
+  const b = getFile(App.fileId);
   if (!b) return;
-  const name = prompt('Name this Binder', b.title);
+  const name = prompt('Name this File', b.title);
   if (name && name.trim()) { b.title = name.trim(); b.updated = Date.now(); saveDB(); renderChrome(); }
 }
 
@@ -3152,17 +3152,17 @@ function onKey(e) {
   if (mod && e.key.toLowerCase() === 'k') { e.preventDefault(); return openPalette(); }
   if (mod && e.key.toLowerCase() === 's') {
     e.preventDefault();
-    const b = getBinder(App.binderId);
-    return b ? exportBinder(b) : toast('Open a Binder to save it');
+    const b = getFile(App.fileId);
+    return b ? exportFile(b) : toast('Open a File to save it');
   }
-  // Cmd/Ctrl+P must go through printBinder(), not the browser's native
-  // print: printBinder() populates every sheet body first, and the browser
+  // Cmd/Ctrl+P must go through printFile(), not the browser's native
+  // print: printFile() populates every sheet body first, and the browser
   // dialog would otherwise print whatever sheets happen to already be
   // rendered (i.e. just the one that's open), leaving the rest blank.
   if (mod && e.key.toLowerCase() === 'p') {
-    if (App.view !== 'binder') return;
+    if (App.view !== 'file') return;
     e.preventDefault();
-    return printBinder();
+    return printFile();
   }
   // Cmd/Ctrl+Z undoes, Shift or Ctrl+Y redoes — ahead of the "typing owns the
   // rest" bail-out below, same as the other global shortcuts: the browser's
@@ -3200,7 +3200,7 @@ function onKey(e) {
     if (e.key === 'ArrowDown') { e.preventDefault(); App.cur++; markShelfCursor(); scrollShelf(); }
     if (e.key === 'ArrowUp') { e.preventDefault(); App.cur--; markShelfCursor(); scrollShelf(); }
     if (e.key === 'Enter' && items[App.cur]) items[App.cur].click();
-    if (e.key === 'b' || e.key === 'B') { e.preventDefault(); createBinder(); }
+    if (e.key === 'b' || e.key === 'B') { e.preventDefault(); createFile(); }
     if (e.key === '/') { e.preventDefault(); openPalette(); }
     return;
   }
@@ -3234,7 +3234,7 @@ function onKey(e) {
       if (App.open) collapse(); else go('#/');
       break;
     case 'b': case 'B':
-      if (!mod) createBinder();
+      if (!mod) createFile();
       break;
     case 's': case 'S':
       if (!mod) { e.preventDefault(); addSheet(); }
@@ -3276,7 +3276,7 @@ function watchTouch() {
   }, { passive: true });
 
   stage.addEventListener('touchend', (e) => {
-    if (App.view !== 'binder' || App.open || !App.doc.tags.length) return;
+    if (App.view !== 'file' || App.open || !App.doc.tags.length) return;
     const t = e.changedTouches[0];
     const dx = t.clientX - x0, dy = t.clientY - y0;
     if (Date.now() - t0 > 600) return;
@@ -3305,7 +3305,7 @@ function watchScroll() {
   const stage = $('#stage');
   let raf = 0;
   stage.addEventListener('scroll', () => {
-    if (raf || App.view !== 'binder' || App.open || scrollSyncSuppressed) return;
+    if (raf || App.view !== 'file' || App.open || scrollSyncSuppressed) return;
     raf = requestAnimationFrame(() => {
       raf = 0;
       const list = visible();
@@ -3327,13 +3327,13 @@ function watchScroll() {
 
 /* == 16. BOOT =============================================================
    Open Txtr and you are already using it: no landing page, no signup, no
-   tour (spec 26). On the very first run the sample Binder is seeded from the
+   tour (spec 26). On the very first run the sample File is seeded from the
    text kept in index.html — it is a document, so it is stored as one.       */
 
 function seedSample() {
-  const src = $('#sample-binder');
+  const src = $('#sample-file');
   if (!src) return;
-  newBinder(src.dataset.title || 'What is Txtr?', src.textContent.replace(/^\n+/, ''));
+  newFile(src.dataset.title || 'What is Txtr?', src.textContent.replace(/^\n+/, ''));
 }
 
 /**
@@ -3366,12 +3366,12 @@ function watchForUpdate() {
 
 function boot() {
   loadDB();
-  if (!DB.binders.length) seedSample();
+  if (!DB.files.length) seedSample();
   watchForUpdate();
 
   // chrome
   $('#crumb-home').addEventListener('click', () => go('#/'));
-  $('#crumb-binder').addEventListener('click', renameBinder);
+  $('#crumb-file').addEventListener('click', renameFile);
   $('#search-btn').addEventListener('click', () => openPalette());
   $('#menu-btn').addEventListener('click', (e) => {
     e.stopPropagation();

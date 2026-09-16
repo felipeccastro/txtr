@@ -61,7 +61,7 @@ The user should not have to learn Txtr before using Txtr.
 The data model should be extremely small.
 
 ```text
-Binder
+File
   └── text
        ├── cards
        ├── tags
@@ -78,9 +78,9 @@ Do not create separate systems when text can provide the primitive.
 
 ---
 
-# 3. Binders
+# 3. Files
 
-A Binder is a collection of related text.
+A File is a collection of related text.
 
 Examples:
 
@@ -95,9 +95,9 @@ Examples:
 * Task list
 * Lightweight project workflow
 
-The Binder itself should feel like a document or book rather than a database.
+The File itself should feel like a document or book rather than a database.
 
-A Binder contains a continuous document flow.
+A File contains a continuous document flow.
 
 ---
 
@@ -203,7 +203,7 @@ The heading can therefore simultaneously be:
 * presentation section
 * printable document heading
 
-A Binder can link directly to a card:
+A File can link directly to a card:
 
 ```text
 txtr.app/...#authentication
@@ -271,7 +271,7 @@ On touch devices:
 
 Move between tags.
 
-Tags effectively become horizontal dimensions of the Binder.
+Tags effectively become horizontal dimensions of the File.
 
 This means a Kanban-like workflow emerges naturally from the same navigation primitive.
 
@@ -279,7 +279,7 @@ This means a Kanban-like workflow emerges naturally from the same navigation pri
 
 # 9. Tags
 
-Tags are the only organizational primitive besides Binders and text.
+Tags are the only organizational primitive besides Files and text.
 
 There are no separate statuses.
 
@@ -335,7 +335,7 @@ A dedicated Kanban implementation should not be part of the initial core.
 
 The same snap-to-grid vertical structure can become a presentation mode.
 
-A Binder can be read one card at a time, with each card behaving like a presentation section.
+A File can be read one card at a time, with each card behaving like a presentation section.
 
 The presentation experience should be automatic rather than requiring users to build a separate presentation.
 
@@ -358,7 +358,7 @@ Keyboard shortcut:
 
 **⌘K**
 
-The search interface should allow instant navigation through the Binder and its contents.
+The search interface should allow instant navigation through the File and its contents.
 
 Search should feel more like a command/navigation surface than a conventional search page.
 
@@ -367,7 +367,7 @@ The user should be able to find:
 * cards
 * text
 * tags
-* Binders
+* Files
 * relevant content
 
 ---
@@ -390,7 +390,7 @@ Example:
 What did we decide about authentication?
 ```
 
-The AI answers using the user's Binder content and points to the relevant cards.
+The AI answers using the user's File content and points to the relevant cards.
 
 The user can navigate directly to those cards.
 
@@ -412,7 +412,7 @@ Possible uses:
 
 > “What did we decide about authentication?”
 
-Ask the Binder.
+Ask the File.
 
 > “Add a card about the new pricing. We decided on R$25 for Pro.”
 
@@ -541,11 +541,11 @@ The text remains the object.
 
 # 20. Printing and PDF
 
-A Binder should be printable.
+A File should be printable.
 
 Two primary actions:
 
-* Print Binder
+* Print File
 * Print current card/entry
 
 The browser's native print system should be used.
@@ -569,7 +569,7 @@ No server-side PDF generation should be required.
 
 # 21. Portable HTML
 
-A central feature of Txtr is that a Binder can exist as an independent HTML file.
+A central feature of Txtr is that a File can exist as an independent HTML file.
 
 The file should be:
 
@@ -583,7 +583,7 @@ The file should be:
 
 The user should be able to:
 
-**Cmd+S → save Binder**
+**Cmd+S → save File**
 
 and receive an HTML file.
 
@@ -601,9 +601,9 @@ A recipient should be able to open the file without having a Txtr account.
 
 The ideal experience:
 
-> Write a Binder → Cmd+S → attach it to an email → recipient opens it.
+> Write a File → Cmd+S → attach it to an email → recipient opens it.
 
-The Binder itself is the artifact.
+The File itself is the artifact.
 
 ---
 
@@ -643,15 +643,15 @@ The server handles:
 
 The philosophy is:
 
-> **The server stores and synchronizes your text. The client understands Binders.**
+> **The server stores and synchronizes your text. The client understands Files.**
 
 ---
 
 # 23. Server storage
 
-Binder content does not need to live in a relational database.
+File content does not need to live in a relational database.
 
-The server can store actual Binder content as HTML files ready to serve.
+The server can store actual File content as HTML files ready to serve.
 
 Conceptually:
 
@@ -659,7 +659,7 @@ Conceptually:
 data/
   users.db
 
-  binders/
+  files/
     abc123/
       current.html
     def456/
@@ -670,7 +670,7 @@ SQLite can store:
 
 * users
 * subscriptions
-* Binder metadata
+* File metadata
 * permissions
 * teams
 * memberships
@@ -683,7 +683,7 @@ This keeps the server simple and makes backups and migration straightforward.
 Potentially, revisions can later be stored as files:
 
 ```text
-binders/
+files/
   abc123/
     current.html
     revisions/
@@ -760,7 +760,7 @@ The philosophy is:
 
 # 27. First-run experience
 
-A sample Binder called:
+A sample File called:
 
 **What's Txtr?**
 
@@ -794,7 +794,7 @@ It should demonstrate:
 * sync
 * team functionality
 
-It should feel like a real Binder rather than a tutorial.
+It should feel like a real File rather than a tutorial.
 
 The user can edit it.
 
@@ -818,9 +818,9 @@ No:
 * activity feeds
 * complicated sidebar navigation
 
-The dashboard simply presents the user's Binders as large items.
+The dashboard simply presents the user's Files as large items.
 
-The Binder itself is the workspace.
+The File itself is the workspace.
 
 ---
 
@@ -836,7 +836,7 @@ Potentially:
 
 **Top left**
 
-Current Binder/navigation context.
+Current File/navigation context.
 
 **Center**
 
@@ -871,12 +871,12 @@ Core interactions:
 
 ```text
 ⌘K      Search / AI
-⌘N      New Binder / new content
+⌘N      New File / new content
 ↑ ↓     Previous / next card
 ← →     Previous / next tag
 Enter   Edit/open
 Esc     Back/collapse
-⌘S      Save Binder
+⌘S      Save File
 ```
 
 Exact shortcut behavior can evolve, but keyboard navigation should be a first-class part of the experience.
@@ -904,7 +904,7 @@ Team functionality should be additive rather than changing the fundamental model
 
 Teams can:
 
-* share Binders
+* share Files
 * edit text
 * mention people
 * quote text
@@ -913,7 +913,7 @@ Teams can:
 
 There should not be a separate team-oriented document model.
 
-The same Binders work for one person and for a team.
+The same Files work for one person and for a team.
 
 ---
 
@@ -942,7 +942,7 @@ There should not be artificial limitations designed solely to force conversion.
 
 ## Pro — $10/month or R$25/month
 
-**Your Binders everywhere.**
+**Your Files everywhere.**
 
 * Multi-device sync
 * Automatic cloud backup
@@ -957,9 +957,9 @@ The lower Brazilian price reflects the intention to make the product substantial
 
 ## Team
 
-**Your Binders together.**
+**Your Files together.**
 
-* Shared Binders
+* Shared Files
 * Multiple people
 * Collaboration
 * `@mentions`
@@ -1162,7 +1162,7 @@ Txtr should ultimately feel like this:
 
 You open `txtr.app`.
 
-You see a clean Binder.
+You see a clean File.
 
 You start writing.
 
@@ -1184,7 +1184,7 @@ You quote text instead of opening a comment system.
 
 You set a reminder.
 
-You save the Binder as HTML.
+You save the File as HTML.
 
 You email it.
 

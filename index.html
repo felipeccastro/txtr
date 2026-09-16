@@ -31,7 +31,7 @@
   <nav class="crumbs" aria-label="Location">
     <button class="crumb" id="crumb-home">Txtr</button>
     <span class="crumb-sep" id="crumb-sep" hidden>/</span>
-    <button class="crumb crumb-current" id="crumb-binder" hidden title="Rename this Binder"></button>
+    <button class="crumb crumb-current" id="crumb-file" hidden title="Rename this File"></button>
   </nav>
   <div class="actions">
     <button class="icon-btn" id="search-btn" aria-label="Search or ask (Command K)">&#9906;</button>
@@ -42,7 +42,7 @@
   </div>
 </header>
 
-<!-- == TAG RAIL: the horizontal dimension of a Binder (spec 8/9/10) ====== -->
+<!-- == TAG RAIL: the horizontal dimension of a File (spec 8/9/10) ====== -->
 <nav class="chrome tagrail" id="tagrail" hidden aria-label="Tags"></nav>
 
 <!-- == STAGE: the text, centred. Everything else is chrome. ============== -->
@@ -54,7 +54,7 @@
 <div class="overlay" id="palette" hidden role="dialog" aria-modal="true" aria-label="Search or ask">
   <div class="term">
     <div class="term-bar">
-      <span id="term-scope">All Binders</span>
+      <span id="term-scope">All Files</span>
       <span class="term-mode" id="term-mode">Find</span>
     </div>
     <!-- Results sit above the field, and the panel is anchored to the foot of
@@ -71,12 +71,12 @@
 
 <div class="toast" id="toast" hidden role="status"></div>
 
-<!-- == THE SAMPLE BINDER ================================================
+<!-- == THE SAMPLE FILE ===================================================
      "What's Txtr?" is landing page, demo, documentation and onboarding at
-     once (spec 27), and it is a real Binder the user can edit or delete. It
+     once (spec 27), and it is a real File the user can edit or delete. It
      lives here as text rather than as a string inside scripts.js, because a
      document should be stored as a document. Seeded on first run only.  -->
-<script type="text/markdown" id="sample-binder" data-title="What&#39;s Txtr?">
+<script type="text/markdown" id="sample-file" data-title="What&#39;s Txtr?">
 Everything on this screen is one text document. The titles below are lines
 that begin with a `#`. Nothing else is happening.
 
@@ -85,7 +85,7 @@ writing in it.
 
 # Start here #start
 
-You are reading a Binder: a single text document that knows how to be
+You are reading a File: a single text document that knows how to be
 navigated.
 
 There was no landing page, no signup and no tour, because there is nothing to
@@ -94,7 +94,7 @@ set up. Open Txtr and you are already using it.
 Every sheet here is editable as it stands, including this one. Change this
 sentence if you like — it is saved on this device as you type.
 
-When you are done reading, delete this Binder and write your own. That is the
+When you are done reading, delete this File and write your own. That is the
 whole first run: **open, read, change it, delete, write.**
 
 # Sheets are just headings #start
@@ -102,8 +102,8 @@ whole first run: **open, read, change it, delete, write.**
 Open a sheet and you are already writing in it. There is no edit button and no
 edit mode, because the page you are reading is the page you type into.
 
-Underneath, this whole Binder is one text file. No sheet objects, no fields,
-no database. Only this:
+Underneath, this whole File is one plain text document. No sheet objects,
+no fields, no database. Only this:
 
 ```
 # Authentication
@@ -164,7 +164,7 @@ remember, and the column follows the sheet you just moved.
 
 Press **Cmd K**.
 
-Type a few letters to jump to any sheet, in any Binder. Or press **Tab** and
+Type a few letters to jump to any sheet, in any File. Or press **Tab** and
 ask a question instead:
 
 > What did we decide about sync pricing?
@@ -191,14 +191,14 @@ Mentions are just text too. @Felipe should review this sheet before we ship.
 
 # Save it, print it, email it #text
 
-Press **Cmd S**. You get one self-contained HTML file: your Binder, offline,
+Press **Cmd S**. Your File becomes one self-contained HTML file — offline,
 openable by anyone, with the original text still inside it so it can come
 back in later.
 
 Press **Cmd P** to print, or print a single sheet from its own footer. Save as
 PDF from there if you want one.
 
-That file is the artifact. Write a Binder, save it, attach it to an email.
+That file is the artifact. Write it, save it, attach it to an email.
 The person who opens it needs no account and no Txtr.
 
 # Everything is text #done
@@ -211,7 +211,7 @@ write.
 If plain text is easier, Txtr uses plain text. It only exists where it
 makes working with that text better.
 
-Now delete this Binder from the menu at the top right, and write something.
+Now delete this File from the menu at the top right, and write something.
 </script>
 
 <script src="scripts.js"></script>

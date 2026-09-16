@@ -33,5 +33,5 @@ The guiding rule, from `SPEC.txt`:
 > If plain text is easier, use plain text. Txtr should only exist where it
 > makes working with that text better.
 
-A Binder's content is Markdown-like text; the app is a live view onto that
+A File's content is Markdown-like text; the app is a live view onto that
 text, not a separate data model bolted on top of it.
