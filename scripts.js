@@ -1738,16 +1738,22 @@ function onEditEnter(root, li) {
 }
 
 /** A block left with no child at all (Enter at the very end or very start of
- * a line) has no line box for the browser to hang a caret or a click on —
- * the CSS min-height for :empty makes it look like a line, but it is not one
- * to click into. A parked caret, same trick as completeMarker, gives it real
- * (if invisible) content; serializing drops it again. data-blank marks it as
- * still-empty for CSS (see .prose p[data-blank]), so the blank row a split
- * leaves behind reads as one new line, not a doubled paragraph gap — and
- * onEditInput drops the marker the moment real text lands in it. */
+ * a line) has no line box for the browser to hang a caret or a click on, so
+ * up/down arrow navigation skips straight over it — it isn't a line as far
+ * as the layout is concerned, only a box a click can still land in by
+ * position. A parked caret, same trick as completeMarker, gives it a real
+ * (if invisible) line to be; serializing drops it again. data-blank marks it
+ * as still-empty for CSS (see .prose p[data-blank]), so the blank row a
+ * split leaves behind reads as one new line, not a doubled paragraph gap —
+ * and onEditInput drops the marker the moment real text lands in it.
+ *
+ * Checked by textContent, not hasChildNodes(): extractContents() (see
+ * cutToEnd) can leave the text node it split behind with nothing in it
+ * rather than removing it, so a "start of line" split block has a child —
+ * hasChildNodes() alone would call that non-empty and leave it unparked. */
 function parkIfEmpty(el) {
-  if (el.hasChildNodes()) return;
-  el.appendChild(document.createTextNode(ZWSP));
+  if (el.textContent) return;
+  el.replaceChildren(document.createTextNode(ZWSP));
   el.dataset.blank = '';
 }
 
