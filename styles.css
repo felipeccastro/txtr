@@ -436,6 +436,10 @@ kbd {
 
 .prose > *:first-child { margin-top: 0; }
 .prose p { margin: 0 0 1.35em; }
+/* A line Enter split open but left with nothing on it yet (see parkIfEmpty)
+   carries a paragraph's full margin on top of its own line height — two
+   blank lines' worth of gap for what should read as one new row. */
+.prose p[data-blank], .prose li[data-blank] { margin-bottom: 0; }
 .prose h3, .prose h4 {
   font-size: .75rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
   color: var(--cyan);

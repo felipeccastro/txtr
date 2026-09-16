@@ -1741,9 +1741,14 @@ function onEditEnter(root, li) {
  * a line) has no line box for the browser to hang a caret or a click on —
  * the CSS min-height for :empty makes it look like a line, but it is not one
  * to click into. A parked caret, same trick as completeMarker, gives it real
- * (if invisible) content; serializing drops it again. */
+ * (if invisible) content; serializing drops it again. data-blank marks it as
+ * still-empty for CSS (see .prose p[data-blank]), so the blank row a split
+ * leaves behind reads as one new line, not a doubled paragraph gap — and
+ * onEditInput drops the marker the moment real text lands in it. */
 function parkIfEmpty(el) {
-  if (!el.hasChildNodes()) el.appendChild(document.createTextNode(ZWSP));
+  if (el.hasChildNodes()) return;
+  el.appendChild(document.createTextNode(ZWSP));
+  el.dataset.blank = '';
 }
 
 /**
@@ -1960,6 +1965,11 @@ function onEditPaste(e, el) {
 
 function onEditInput(el) {
   touched();
+  // Typing into a line parkIfEmpty marked blank makes it a real line again —
+  // the shrunk margin that made it read as one new row, not two, stops
+  // applying the moment it has something in it.
+  const block = currentBlock(el);
+  if (block && block.dataset.blank !== undefined && blockText(block).trim()) delete block.dataset.blank;
   if (el.dataset.role === 'body') { completeBlock(el) || completeMarker(el); }
   else completeMarker(el);
   persistSheet();
