@@ -335,7 +335,6 @@ kbd {
    so position is shown without putting anything beside the text (spec 5).  */
 
 .lead { color: var(--fg-dim); font-size: 1.125rem; margin: 0 0 4rem; }
-.lead.trail { margin: 2.5rem 0 4rem; }
 
 .index { list-style: none; margin: 0; padding: 0; }
 
@@ -845,8 +844,8 @@ table[data-b="table"] td:last-child, table[data-b="table"] th:last-child { paddi
   .reply { border-left-color: #888; box-shadow: none; }
   .print-sheet-only .sheet:not(.is-print) { display: none; }
   /* Placeholder hints ("Write. A line starting with # is a heading.", "Name
-     this sheet", the trail's "Write more...") guide someone typing — on
-     paper there's no caret to guide, so an empty line just prints blank. */
+     this sheet") guide someone typing — on paper there's no caret to guide,
+     so an empty line just prints blank. */
   .sheet-title[contenteditable]:empty::before,
   .shelf-item-title[contenteditable]:empty::before,
   .prose > p:only-child:empty::before { content: none; }

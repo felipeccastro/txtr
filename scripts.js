@@ -579,9 +579,9 @@ function columnFor(slug) {
 
 function show(view, file, slug) {
   closeOverlays();
-  // Whatever is still unsaved in lead/trail belongs to the File on screen
-  // right now — commit it before App.doc points somewhere else.
-  if (App.view === 'file') commitRegions();
+  // Whatever is still unsaved in lead belongs to the File on screen right
+  // now — commit it before App.doc points somewhere else.
+  if (App.view === 'file') commitLead();
   if (view === 'shelf') {
     App.view = 'shelf'; App.fileId = null; App.doc = null; App.open = null; App.cur = 0;
     renderShelf();
@@ -685,7 +685,7 @@ function markShelfCursor() {
 
 function renderFile() {
   const stage = $('#stage');
-  commitRegions();          // absorb whatever is still unsaved in lead/trail first
+  commitLead();          // absorb whatever is still unsaved in lead first
   const doc = App.doc;
 
   const rows = doc.sheets.map((c, i) => {
@@ -709,13 +709,11 @@ function renderFile() {
   stage.innerHTML = '<div class="column">' +
     '<div class="lead prose" id="lead"></div>' +
     (doc.sheets.length
-      ? '<ol class="index" id="index">' + rows + '</ol>' +
-        '<div class="lead prose trail" id="trail"></div>'
+      ? '<ol class="index" id="index">' + rows + '</ol>'
       : '') +
   '</div>';
 
-  fillRegion('lead', doc.lead);
-  if (doc.sheets.length) fillRegion('trail', []);
+  fillLead(doc.lead);
 
   $$('.sheet-hit', stage).forEach((hit) => {
     hit.addEventListener('click', (e) => {
@@ -2023,67 +2021,59 @@ function leaveSheet() {
 }
 
 
-/* -- lead & trail: text with no sheet of its own ---------------------------
-   Before the first heading, and after the last one, text is still just
-   text — it only lacks a name and a tag (spec 2, 4). Both are edited with
-   the same block rules and the same serializer as a sheet's own body, so
-   typing "# " here is still the only way a sheet is born; there is no
-   separate "new sheet" control to click instead.
-   Surface: fillRegion(kind, lines), commitRegions().                       */
+/* -- lead: text with no sheet of its own -----------------------------------
+   Before the first heading, text is still just text — it only lacks a name
+   and a tag (spec 2, 4). It is edited with the same block rules and the
+   same serializer as a sheet's own body, so typing "# " here is still the
+   only way a sheet is born; there is no separate "new sheet" control to
+   click instead. There is no equivalent region after the last sheet: text
+   with no heading of its own can't be told apart from that sheet's own
+   trailing content, the same way trailing text can't be told apart from the
+   last section in plain Markdown — so a sheet's own body is the only place
+   to add text once at least one sheet exists.
+   Surface: fillLead(lines), commitLead().                                  */
 
-/* Neither region has a heading of its own to re-locate by, so — like an open
-   sheet's own from/to — each one's range has to be remembered rather than
-   looked up fresh on every commit. Looking it up fresh is exactly the bug
-   this replaced: once lead has written its own first line of a sheet, that
-   sheet *is* App.doc.sheets[0], so re-deriving "up to the first sheet" from
-   App.doc next keystroke collapses to zero width and the following commit
-   inserts a second sheet beside the first instead of finishing it. Same
-   failure at the other end for trail, whichever sheet just became the last. */
-const RegionEdit = { lead: { from: -1, to: -1 }, trail: { from: -1, to: -1 } };
+/* Lead has no heading of its own to re-locate by, so — like an open sheet's
+   own from/to — its range has to be remembered rather than looked up fresh
+   on every commit. Looking it up fresh is exactly the bug this replaced:
+   once lead has written its own first line of a sheet, that sheet *is*
+   App.doc.sheets[0], so re-deriving "up to the first sheet" from App.doc
+   next keystroke collapses to zero width and the following commit inserts a
+   second sheet beside the first instead of finishing it. */
+const LeadEdit = { from: -1, to: -1 };
 
-/** Where this region's own lines currently live in the raw text. */
-function regionRange(kind) {
-  const r = RegionEdit[kind];
-  if (r.from < 0) {
+/** Where lead's own lines currently live in the raw text. */
+function leadRange() {
+  if (LeadEdit.from < 0) {
     const lines = getFile(App.fileId).text.split('\n');
-    if (kind === 'lead') {
-      const first = App.doc.sheets[0];
-      r.from = 0; r.to = first ? first.line : lines.length;
-    } else {
-      r.from = r.to = lines.length;
-    }
+    const first = App.doc.sheets[0];
+    LeadEdit.from = 0; LeadEdit.to = first ? first.line : lines.length;
   }
-  return { from: r.from, to: r.to };
+  return { from: LeadEdit.from, to: LeadEdit.to };
 }
 
-/** Write this region's DOM back into its own range, and nowhere else. */
-function commitRegion(kind) {
-  const el = $('#' + kind);
+/** Write lead's DOM back into its own range, and nowhere else. */
+function commitLead() {
+  const el = $('#lead');
   const b = getFile(App.fileId);
   if (!el || !b || !App.doc) return false;
-  const { from, to } = regionRange(kind);
+  const { from, to } = leadRange();
   const bodyLines = serializeBody(el);
   const lines = b.text.split('\n');
   const block = bodyLines.length ? [...bodyLines, ''] : [];
   // No tidyLines here: it could trim a trailing blank line, and then the
   // remembered range above would run short of what is actually on disk.
   const text = [...lines.slice(0, from), ...block, ...lines.slice(to)].join('\n');
-  RegionEdit[kind].to = from + block.length;
+  LeadEdit.to = from + block.length;
   if (text === b.text) return false;
   writeFile(b, text);
   App.doc = parse(b.text);
   return true;
 }
 
-/** Called before anything reads App.doc to decide what the screen shows. */
-function commitRegions() {
-  commitRegion('lead');
-  commitRegion('trail');
-}
-
-const persistRegion = debounce((kind) => {
-  if (!commitRegion(kind)) return;
-  const el = $('#' + kind);
+const persistLead = debounce(() => {
+  if (!commitLead()) return;
+  const el = $('#lead');
   // A heading still being typed is already a sheet in the text but not yet a
   // row on screen (see persistSheet) — the rail waits for the same reason.
   if (!el || !$('[data-b="sheet"]', el)) renderTagRail();
@@ -2091,11 +2081,11 @@ const persistRegion = debounce((kind) => {
 
 /** A heading typed here is a real sheet the moment Enter closes it — the
  * same instant it would become one inside an open sheet's body. */
-function commitPendingSheet(el, kind, block) {
+function commitPendingSheet(el, block) {
   const title = blockText(block).replace(/^#+\s*/, '').trim();
   if (!title) { placeCaret(block, 'end'); return; }
-  commitRegion(kind);
-  const made = kind === 'lead' ? App.doc.sheets[0] : App.doc.sheets[App.doc.sheets.length - 1];
+  commitLead();
+  const made = App.doc.sheets[0];
   if (!made) return;
   const slug = made.slug;
   inheritColumnTag(made);
@@ -2106,37 +2096,37 @@ function commitPendingSheet(el, kind, block) {
   if (body) placeCaret(body.firstElementChild || body, 'start');
 }
 
-function onRegionKey(e, el, kind) {
+function onLeadKey(e, el) {
   if (e.key === 'Escape') { e.preventDefault(); el.blur(); return; }
 
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     const block = currentBlock(el);
-    if (block && block.dataset.b === 'sheet') { commitPendingSheet(el, kind, block); return; }
+    if (block && block.dataset.b === 'sheet') { commitPendingSheet(el, block); return; }
     onEditEnter(el, null);
-    persistRegion(kind);
+    persistLead();
     return;
   }
-  if (e.key === 'Backspace') { onEditBackspace(e, el); persistRegion(kind); return; }
+  if (e.key === 'Backspace') { onEditBackspace(e, el); persistLead(); return; }
   if (e.key === 'Tab') {
     e.preventDefault();
     const block = currentBlock(el);
     if (block && (block.dataset.b === 'li' || block.dataset.b === 'task')) {
       const did = e.shiftKey ? outdentListItem(block) : indentListItem(block);
-      if (did) { persistRegion(kind); return; }
+      if (did) { persistLead(); return; }
     }
     document.execCommand('insertText', false, '  ');
   }
 }
 
-/** Pasted Markdown lands in the region's own source, same as inside a sheet. */
-function onRegionPaste(e, el, kind) {
+/** Pasted Markdown lands in lead's own source, same as inside a sheet. */
+function onLeadPaste(e, el) {
   e.preventDefault();
   const raw = (e.clipboardData || window.clipboardData).getData('text/plain') || '';
   if (!raw) return;
   if (!/\n/.test(raw)) {
     document.execCommand('insertText', false, raw.replace(/\s*\n\s*/g, ' '));
-    persistRegion(kind);
+    persistLead();
     return;
   }
 
@@ -2154,57 +2144,49 @@ function onRegionPaste(e, el, kind) {
   });
   if (!tops.length) raw.split('\n').forEach((l) => out.push(l));
 
-  const { from, to } = regionRange(kind);
+  const { from, to } = leadRange();
   const b = getFile(App.fileId);
   const lines = b.text.split('\n');
   const text = tidyLines([...lines.slice(0, from), ...tidyLines(out), '', ...lines.slice(to)]).join('\n');
   writeFile(b, text);
   App.doc = parse(b.text);
   renderFile();
-  const el2 = $('#' + kind);
-  if (el2) placeCaret(el2, kind === 'lead' ? 'start' : 'end');
+  const el2 = $('#lead');
+  if (el2) placeCaret(el2, 'start');
 }
 
-function wireRegion(el, kind) {
+function wireLead(el) {
   el.contentEditable = 'true';
   el.spellcheck = true;
   el.dataset.role = 'region';
-  wireProse(el, () => commitRegion(kind));
+  wireProse(el, () => commitLead());
   el.addEventListener('focus', () => { if (App.open) collapse(); });
-  el.addEventListener('input', () => { completeBlock(el) || completeMarker(el); persistRegion(kind); });
-  el.addEventListener('keydown', (e) => onRegionKey(e, el, kind));
+  el.addEventListener('input', () => { completeBlock(el) || completeMarker(el); persistLead(); });
+  el.addEventListener('keydown', (e) => onLeadKey(e, el));
   el.addEventListener('copy', onEditCopy);
   el.addEventListener('cut', onEditCut);
-  el.addEventListener('paste', (e) => onRegionPaste(e, el, kind));
+  el.addEventListener('paste', (e) => onLeadPaste(e, el));
   // Leaving mid-heading finishes it, same as Enter would — but that redraws
   // the whole index, and doing that synchronously on blur can eat a click
   // already headed for a different row, so it waits a tick.
   el.addEventListener('blur', () => {
     const hadPendingSheet = !!$('[data-b="sheet"]', el);
-    if (!commitRegion(kind)) return;
-    if (hadPendingSheet) { setTimeout(renderFile, 0); return; }
-    // Plain text just committed into the tail of the last sheet (or, for
-    // lead, is already showing correctly where it stands) — trail resets so
-    // the same words are not also left sitting below the index.
-    if (kind === 'trail') fillRegion('trail', []);
+    if (!commitLead()) return;
+    if (hadPendingSheet) setTimeout(renderFile, 0);
   });
 }
 
-/** Fill a region from its own lines and make it as editable as a sheet body. */
-function fillRegion(kind, lines) {
-  const el = $('#' + kind);
+/** Fill lead from its own lines and make it as editable as a sheet body. */
+function fillLead(lines) {
+  const el = $('#lead');
   if (!el) return;
   el.innerHTML = renderBody({ line: -1, lines }) || '';
   if (!el.children.length) el.appendChild(newBlock('p'));
-  const only = el.children.length === 1 && el.firstElementChild;
-  if (only && only.dataset.b === 'p' && !only.textContent.trim() && kind === 'trail') {
-    only.dataset.hint = 'Write more, or start a line with # for a new sheet.';
-  }
-  // A fresh render is the one point where this region's range is allowed to
-  // be looked up again — regionRange recomputes it once, on first use, then
+  // A fresh render is the one point where lead's range is allowed to be
+  // looked up again — leadRange recomputes it once, on first use, then
   // remembers it through every commit until the next fresh render.
-  RegionEdit[kind].from = RegionEdit[kind].to = -1;
-  wireRegion(el, kind);
+  LeadEdit.from = LeadEdit.to = -1;
+  wireLead(el);
 }
 
 
